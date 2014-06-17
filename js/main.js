@@ -83,25 +83,24 @@ window.onload = function(){
 	var boundRatio = game.fps * 2;
 	var isFirstTime = true;
 
-	function isDestroyBlock(_target, _ball, _block){
+	function isDestroyBlock(_target, _block){
 		var ii;
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
 			if(_target === tmp_block){
-				_ball.applyImpulse(new b2Vec2(0.1, 0.1));
 				tmp_block.destroy();
 			}
 		}
 	}
 
-	function buildBall(_player, _block, _rad, _pad, _world){
+	function buildBall(_player, _block, _color, _rad, _pad, _world){
 		var surface = new Surface( _rad*2, _rad*2);
 		var sprite = new PhyCircleSprite(_rad, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.0, 1.0, true);
 		var s_x;
 		var s_y;
 
 		surface.context.beginPath();
-		surface.context.fillStyle = "red";
+		surface.context.fillStyle = _color;
 		surface.context.arc(_rad, _rad, _rad, 0, Math.PI*2, false);
 		surface.context.fill();
 
@@ -122,11 +121,11 @@ window.onload = function(){
 			_world.step(game.fps);
 
 			if(this.x >= game.width){
-				this.x = game.width - this.width;
+				this.x = game.width - this.width -5; /* dec mergin (5pix) */
 				sprite.applyImpulse( new b2Vec2(-0.3, -0.3) )
 			}
 			else if(this.x <= 0){
-				this.x = 0;
+				this.x = 0 + 5; /* inc mergin (5pix) */
 				sprite.applyImpulse( new b2Vec2(0.3, -0.3) )
 			}
 
@@ -140,26 +139,27 @@ window.onload = function(){
 			}
 
 			sprite.contact(function(obj){
-				if(upPower == true){
-					upPower = false;
-					downPower = false;
-					sprite.applyImpulse( new b2Vec2(0.0, -10.) )
-					sprite.applyTorque(2.0)
-					console.log("upPower");
-				}
-				else if(downPower == true){
-					upPower = false;
-					downPower = false;
-					sprite.applyForce( new b2Vec2(0.0, 0.0) )
-					console.log("downPower");
-				}
-
 				if(obj === _player){
-					sprite.applyImpulse( new b2Vec2(0.0, -0.3) )
-					//sprite.applyTorque(0.3)
+					if(upPower == true){
+						upPower = false;
+						downPower = false;
+						sprite.applyImpulse( new b2Vec2(10.0, -10.0) );
+						sprite.applyTorque(2.0);
+						console.log("upPower");
+					}
+					else if(downPower == true){
+						upPower = false;
+						downPower = false;
+						sprite.applyForce( new b2Vec2(0.0, 0.0) );
+						console.log("downPower");
+					}
+					else{
+						//sprite.applyImpulse( new b2Vec2(0.0, -0.3) );
+						//sprite.applyTorque(0.3);
+					}	
 				}
 				else{
-					isDestroyBlock(obj, sprite, _block);
+					isDestroyBlock(obj, _block);
 				}
 			});
 
@@ -168,11 +168,9 @@ window.onload = function(){
 		return sprite;
 	};
 
-	function buildBlocks(_scene, _lines, _player, _ball, _pad, _world){
+	function buildBlocks(_scene, _lines, _player, _pad, _world){
 		var s_w = 10;
-		//var s_h = Math.floor((game.height-_ball.y)/_lines);
 		var s_h = 10;
-		//var term_line = Math.floor(game.height-_ball.y);
 		var term_line = 10*10;
 		var surface;
 		var sprite = Array();
@@ -180,15 +178,32 @@ window.onload = function(){
 		var s_x, s_y;
 
 		cnt = 0;
-		surface = new Surface(s_w, s_h);
-		surface.context.fillStyle = "blue";
-		surface.context.fillRect(0, 0, surface.width, surface.height);
-
 		for(ii=0; ii<game.width; ii+=s_w){
 			for(jj=0; jj<term_line; jj+=s_h){
-				sprite[cnt] = new PhyBoxSprite( s_w, s_h, enchant.box2d.STATIC_SPRITE, 0.3, 0.2, 0.6, true);
+				var i_col = cnt%4;
+
+				surface = new Surface(s_w, s_h);
+				switch(i_col) {
+					case 0:
+						surface.context.fillStyle = "blue";
+						break;
+					case 1:
+						surface.context.fillStyle = "red";
+						break;
+					case 2:
+						surface.context.fillStyle = "yellow";
+						break;
+					case 3:
+						surface.context.fillStyle = "white";
+						break;
+				}
+				surface.context.fillRect(0, 0, surface.width, surface.height);
+
+				sprite[cnt] = new PhyBoxSprite( s_w, s_h,
+												enchant.box2d.STATIC_SPRITE,
+												0.3, 0.2, 0.6, true);
 				sprite[cnt].image = surface;
-				sprite[cnt].position = { x : ii, y : jj};
+				sprite[cnt].position = { x : ii, y : jj };
 				_scene.addChild(sprite[cnt]);
 				cnt++;
 			}
@@ -197,16 +212,30 @@ window.onload = function(){
 	};
 
 	var startScene = function (){
-		var world = new PhysicsWorld( 0, 9.8 );
+//		var world = new PhysicsWorld( 0, 9.8 );
+		var world = new PhysicsWorld( 0, 1.0 );
 		var scene = new Scene();
 		var pad = new Pad();
 
+		var red_ball = [];
+		var ii = 0;
+
 		var player = buildPlayerBlock(240, 12, pad, scene, world);
-		var block = buildBlocks(scene, 10, player, ball, pad, world);
-		var ball = buildBall(player, block, 5, pad, world);
+		var block = buildBlocks(scene, 10, player, pad, world);
+
+		for(ii=0; ii<1; ii++){
+			red_ball[ii] = buildBall(player, block, "red", 5, pad, world); 
+			scene.addChild(red_ball[ii]);
+		}
+
+		//var red_ball = buildBall(player, block, "red", 5, pad, world);
+		//var yellow_ball = buildBall(player, block, "yellow", 5, pad, world);
+		//var black_ball = buildBall(player, block, "black", 5, pad, world);
+		//scene.addChild(red_ball);
+		//scene.addChild(yellow_ball);
+		//scene.addChild(black_ball);
 
 		scene.addChild(player);
-		scene.addChild(ball);
 
 		pad.moveTo(0, game.height-pad.height);
 		scene.addChild(pad);
