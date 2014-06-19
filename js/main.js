@@ -44,36 +44,52 @@ window.onload = function(){
 	var touch_pos_x = 0;
 	var touch_pos_y = 0;
 
-	var dColArray = new Array();
-	var dXArray = new Array();
-	var dYArray = new Array();
+	var sDestBlockArray = new Array();
 
     var game = new Core(320, 320);
     game.fps = 60;
 	game.preload('image/yamochi.png');
+	game.preload('image/gameover.png');
+	game.preload('image/clear.png');
+	game.keybind( 71, 'g' );
+	game.keybind( 84, 't' );
+	game.keybind( 90, 'z' );
 
-	function buildWall(_scene, _world){
-		var surface	= new Surface( 1, game.height);
-		var left_sprite = new PhyBoxSprite( 1, game.height, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
-		var right_sprite = new PhyBoxSprite( 1, game.height, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
-		var top_sprite = new PhyBoxSprite( game.width, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
+	function buildWall(_player, _scene, _world){
+		var surface1	= new Surface( 1, game.height*2);
+		var surface2	= new Surface( game.width*2, 1);
+		var left_sprite = new PhyBoxSprite( 1, game.height*2, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
+		var right_sprite = new PhyBoxSprite( 1, game.height*2, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
+		var top_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
+		var bottom_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
 
-		surface.context.fillStyle = "white";
-		surface.context.fillRect(0, 0, surface.width, surface.height);
+		surface1.context.fillStyle = "green";
+		surface1.context.fillRect(0, 0, surface1.width, surface1.height);
+		surface2.context.fillStyle = "green";
+		surface2.context.fillRect(0, 0, surface2.width, surface2.height);
 
-		left_sprite.image = surface;
+		left_sprite.image = surface1;
 		left_sprite.position = { x : 0, y : 0 };
-		left_sprite.kind = "wall";
-		right_sprite.image = surface;
+		left_sprite.kind = "left_wall";
+		right_sprite.image = surface1;
 		right_sprite.position = { x : game.width - 1, y : 0 };
-		right_sprite.kind = "wall";
-		top_sprite.image = surface;
+		right_sprite.kind = "right_wall";
+		top_sprite.image = surface2;
 		top_sprite.position = { x : 0, y : 0 };
-		top_sprite.kind = "wall";
+		top_sprite.kind = "top_wall";
+		bottom_sprite.image = surface2;
+		//bottom_sprite.position.x = 0;
+		//bottom_sprite.position.y = (_player.y + _player.height);
+		bottom_sprite.position = { x : 0, y : (_player.y + (_player.height*3)) };
+		bottom_sprite.kind = "bottom_wall";
+
+console.log("x = " + bottom_sprite.x + " y = " + bottom_sprite.y);
+console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.position.y);
 
 		_scene.addChild(left_sprite);
 		_scene.addChild(right_sprite);
 		_scene.addChild(top_sprite);
+		_scene.addChild(bottom_sprite);
 	};
 
 	function buildPlayerBlock(/*_posX, _posY */ _width, _height, _pad, _world){
@@ -104,27 +120,21 @@ window.onload = function(){
 		var ii;
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
-			if(_target === tmp_block){
-				dColArray.push(tmp_block.color);
-				dXArray.push(tmp_block.x);
-				dYArray.push(tmp_block.y);
+			if(_target == tmp_block){
+				sDestBlockArray.push(tmp_block);
+				_block.splice(ii, 1);
 				tmp_block.destroy();
 			}
 		}
 	}
 
-	function setPlayerCallback(_player,_ball){
-		_player.addEventListener(Event.TOUCH_START, function(e) {
-			touch_pos_x = e.x;
-			touch_pos_y = e.y;
-		});
-
+	function setPlayerCallback(_player, _ball){
 		_player.addEventListener(Event.TOUCH_MOVE, function(e) {
 			var tmp_x = e.x;
 			var tmp_y = e.y;
-			var dest_x = touch_pos_x - tmp_x;
+			var dest_x = tmp_x;
 
-			_player.x -= dest_x;
+			_player.x = dest_x;
 
 			if(_ball.isAwake == false){
 				_ball.x -= dest_x;
@@ -179,57 +189,16 @@ window.onload = function(){
 	function setBallCallback(_ball, _world) {
 
 		_ball.addEventListener(Event.ENTER_FRAME, function(e){
-//			var moveX = this.x;
-//			var moveY = this.y;
-//			var ii;
-//
 			_world.step(game.fps);
-//
-//			if(this.x >= game.width){
-//				_ball.applyImpulse( new b2Vec2(-0.5, -0.3) )
-//			}
-//			else if(this.x <= 0){
-//				_ball.applyImpulse( new b2Vec2(0.5, -0.3) )
-//			}
-//
-//			if(this.y <= 0){
-//			}
-//			else if(this.y >= game.height){
-//				_ball.applyImpulse( new b2Vec2(0.0, -50.0) )
-//			}
-//
-//			_ball.contact(function(obj){
-//				if(obj.kind == "player"){
-//					if(upPower == true){
-//						upPower = false;
-//						downPower = false;
-//						_ball.applyImpulse( new b2Vec2(0.0, -10.0) );
-//						console.log("upPower");
-//						_ball.isAwake = true;
-//					}
-//					else if(downPower == true){
-//						upPower = false;
-//						downPower = false;
-//						console.log("downPower");
-//						_ball.isAwake = false;
-//					}
-//					_ball.setAwake(_ball.isAwake);
-//				}
-//				else if(obj.kind == "block") {
-//					destroyBlock(obj, _block, _player, _pad, _scene, _world);
-//				}
-//			});
 		});
 	}
 
 	function divideBall(_player, _scene, _world, _x, _y){
 		var ball = buildBall(_player, "red", 50/2, _x, _y); 
-		ball.setAwake(true);
+		red_ball.push(ball);
+		ball.applyImpulse(new b2Vec2(0.0, 10.0));
 		setBallCallback(ball, _world);
 		_scene.addChild(ball);
-
-		// terminated bug 
-		red_ball.push(ball);
 	}
 
 	var sBlockGroup;
@@ -262,7 +231,7 @@ window.onload = function(){
 						surface.context.fillStyle = "yellow";
 						break;
 					case 3:
-						surface.context.fillStyle = "white";
+						surface.context.fillStyle = "black";
 						break;
 				}
 				surface.context.fillRect(0, 0, surface.width, surface.height);
@@ -283,10 +252,14 @@ window.onload = function(){
 		_scene.addChild(sBlockGroup);
 
 		sBlockGroup.addEventListener(Event.CHILD_REMOVED, function(e){
-			var col = dColArray.pop();
-			var x = dXArray.pop();
-			var y = dYArray.pop();
-			if(col == "#0000ff"){
+			var tmp_block = sDestBlockArray.pop();
+			var col = tmp_block.color;
+			var x = tmp_block.position.x;
+			var y = tmp_block.position.y;
+
+console.log("Block removed. col = " + col + " length = " + red_ball.length);
+
+			if((col == "#0000ff") && (red_ball.length < 5)){
 				divideBall(_player, _scene, _world, x, y);
 			}
 		});
@@ -294,40 +267,108 @@ window.onload = function(){
 		return sprite;
 	};
 
-	var red_ball = [];
+	var gameclearScene = function() {
+		var scene = new Scene();
+		var screen_x = game.width;
+		var screen_y = game.height;
+		var retryButton = new Button("retry", "light");
+		var over_logo = new Sprite(267, 48);
+
+    	over_logo.image = game.assets['image/clear.png'];
+		over_logo.x = Math.floor(screen_x/2) - Math.floor(267/2);
+		over_logo.y = Math.floor(screen_y/2) - Math.floor(48/2);
+    	scene.addChild(over_logo);
+		scene.backgroundColor = 'rgba(0, 255, 255, 0.5)';
+
+		retryButton.moveTo(180, 240);
+		scene.addChild(retryButton);
+
+        retryButton.addEventListener(Event.TOUCH_END, function(){
+			game.popScene();
+			game.replaceScene(startScene());
+        });
+
+		return scene;
+	};
+
+	var gameoverScene = function() {
+		var scene = new Scene();
+		var screen_x = game.width;
+		var screen_y = game.height;
+
+		var over_logo = new Sprite(189, 97);
+    	over_logo.image = game.assets['image/gameover.png'];
+		over_logo.x = Math.floor(screen_x/2) - Math.floor(189/2);
+		over_logo.y = Math.floor(screen_y/2) - Math.floor(97/2);
+
+    	scene.addChild(over_logo);
+		scene.backgroundColor = 'rgba(0, 0, 255, 0.5)';
+
+		scene.addEventListener(Event.TOUCH_START, function(e) {
+			game.popScene();
+			game.replaceScene(startScene());
+		});
+
+		return scene;
+	};
+
+	var red_ball;
 	var startScene = function (){
-		var world = new PhysicsWorld( 0.0, 9.8 );
+		//var world = new PhysicsWorld( 0.0, 9.8 );
+		var world = new PhysicsWorld( 0.0, 0.01 );
 		var scene = new Scene();
 		var pad = new Pad();
-
-		var count = 0;
 		var ii = 0;
 
-		var player = buildPlayerBlock(240, 12, pad, scene, world);
+		var player = buildPlayerBlock(100, 12, pad, scene, world);
 		var block = buildBlocks(scene, 10, player, pad, world);
+		red_ball = new Array(0);
 
 		for(ii=0; ii<1; ii++){
-			red_ball[count] = buildBall(player, "red", 50/2); 
-			red_ball[count].isAwake = true;
-			red_ball[count].setAwake(red_ball[count].isAwake);
-			scene.addChild(red_ball[count]);
+			var ball = buildBall(player, "red", 50/2); 
+			ball.isAwake = true;
+			ball.setAwake(ball.isAwake);
+			ball.applyImpulse( new b2Vec2(0.3, 0.5) )
+			scene.addChild(ball);
+			red_ball.push(ball);
 
-			setPlayerCallback(player, red_ball);
-			setBallCallback(red_ball[count], world);
-			count++;
+console.log("red_ball.length = " + red_ball.length);
+
+			setPlayerCallback(player, ball);
+			setBallCallback(ball, world);
 		}
-		buildWall(scene, world);
+		buildWall(player, scene, world);
 
 		scene.addChild(player);
 
 		scene.addEventListener(Event.ENTER_FRAME, function(e){
-			var move_distance = player.x;
+			var move_distance = player.position.x;
+			var input = game.input;
 			{
 				/* focus on player */
-				var input = game.input;
 				if (input.up)    {
 					upPower = true;
 				}
+
+				if(input.g){
+					for(var ii=0; ii<red_ball.length; ii++){
+						var ball = red_ball[ii];
+						ball.applyImpulse(new b2Vec2(0.0, 5.0));
+					}
+				}
+				if(input.z){
+					for(var ii=0; ii<red_ball.length; ii++){
+						var ball = red_ball[ii];
+						ball.applyImpulse(new b2Vec2(0.0, -5.0));
+					}
+				}
+				if(input.t){
+					for(var ii=0; ii<red_ball.length; ii++){
+						var ball = red_ball[ii];
+						ball.applyTorque(0.3);
+					}
+				}
+
 				if (input.down)  {
 					downPower = true;
 				}
@@ -350,29 +391,34 @@ window.onload = function(){
 
 			{
 				/* focus on ball */
+				if(red_ball.length <= 0){
+					game.pushScene(gameoverScene());
+				}
+
+				if(block.length <= 0){
+					game.pushScene(gameclearScene());
+				}
+
 				for(var ii=0; ii<red_ball.length; ii++){
 					var ball = red_ball[ii];
 					var moveX = red_ball[ii].x;
 					var moveY = red_ball[ii].y;
 
 					if(ball.isAwake == false){
-						move_distance -= player.x;
-						ball.x -= move_distance;
+						move_distance -= player.position.x;
+						//ball.x -= move_distance;
+						if (input.up) {
+							ball.isAwake = true;
+						}
+						if(input.left) {
+							ball.applyTorque(-1.0);
+						}
+						if(input.right) {
+							ball.applyTorque(1.0);
+						}
+						ball.setAwake(ball.isAwake);
 					}
 					else{
-						if(ball.x >= game.width){
-							ball.applyImpulse( new b2Vec2(-0.5, -0.3) )
-						}
-						else if(ball.x <= 0){
-							ball.applyImpulse( new b2Vec2(0.5, -0.3) )
-						}
-
-						if(ball.y <= 0){
-						}
-						else if(ball.y >= game.height){
-							ball.applyImpulse( new b2Vec2(0.0, -50.0) )
-						}
-
 						ball.contact(function(obj){
 							if(obj.kind == "player"){
 								if(upPower == true){
@@ -383,6 +429,9 @@ window.onload = function(){
 									ball.isAwake = true;
 								}
 								else if(downPower == true){
+									if(ball.y+ball.height <= player.y){
+										ball.y = player.y - ball.height;
+									}
 									upPower = false;
 									downPower = false;
 									console.log("downPower");
@@ -391,7 +440,48 @@ window.onload = function(){
 								ball.setAwake(ball.isAwake);
 							}
 							else if(obj.kind == "block") {
+								ball.setAwake(false);
 								destroyBlock(obj, block, player, pad, scene, world);
+								ball.applyImpulse(new b2Vec2(0.0, 2.0));
+								ball.setAwake(true);
+							}
+							else if(obj.kind == "ball"){
+//								obj.destroy();
+							}
+							else if(obj.kind == "bottom_wall"){
+								var isFoundBall = false;
+								ball.setAwake(false);
+								for(var ii=0; ii<red_ball.length; ii++){
+									if(ball == red_ball[ii]){
+console.log("red_ball dec(splice) = " + ii + " left = " + red_ball.length);
+										red_ball.splice(ii, 1);
+										ball.destroy();
+										isFoundBall = true;
+									}
+								}
+								if(isFoundBall == false){
+									for(var ii=0; ii<red_ball.length; ii++){
+										console.log("type["+ii+"] = " + red_ball[ii]);
+										console.log("destroy? = " + red_ball[ii].destroy);
+										console.log("pos x = " + red_ball[ii].position.x + " y = " + red_ball[ii].position.y);
+										console.log("x = " + red_ball[ii].x + " y = " + red_ball[ii].y);
+										if((red_ball[ii].position.x > game.width) ||
+										   (red_ball[ii].position.x < 0)		  ||
+										   (red_ball[ii].position.y > game.height) ||
+										   (red_ball[ii].position.y < 0))
+										{
+											console.log("delete orphan ball");
+											if(red_ball[ii].destroy != undefined){
+												console.log("probably ok?");
+												red_ball[ii].destroy();
+											}
+											red_ball.splice(ii, 1);
+										}
+									}
+									ball.destroy();
+								}
+								ball.setAwake(true);
+								console.log("is found destroy target ball = " + isFoundBall);
 							}
 						});
 					}
@@ -399,7 +489,7 @@ window.onload = function(){
 			}
 		});
 
-		pad.moveTo(0, game.height-pad.height);
+		pad.moveTo(game.width/2 - (pad.width/2), game.height-pad.height);
 		scene.addChild(pad);
 
 		return scene;
