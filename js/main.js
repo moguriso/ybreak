@@ -78,7 +78,7 @@ window.onload = function(){
 
 	function buildPlayerBlock(/*_posX, _posY */ _width, _height, _pad, _world){
 		var surface = new Surface( _width, _height);
-		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 0.8, 0.3, true);
+		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 10.0, 0.3, true);
 		var s_x = Math.floor(game.width/2) - Math.floor(surface.width/2);
 		var s_y = Math.floor(game.height) - Math.floor(surface.height) - _pad.height;
 
@@ -229,7 +229,7 @@ window.onload = function(){
 		_scene.addChild(ball);
 
 		// terminated bug 
-		//red_ball.push(ball);
+		red_ball.push(ball);
 	}
 
 	var sBlockGroup;
