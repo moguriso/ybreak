@@ -51,9 +51,36 @@ window.onload = function(){
 	game.preload('image/yamochi.png');
 	game.preload('image/gameover.png');
 	game.preload('image/clear.png');
+	game.preload('image/bomb_1.png');
+	game.preload('image/3ca.png');
+	game.preload('image/ytitle.png');
 	game.keybind( 71, 'g' );
 	game.keybind( 84, 't' );
 	game.keybind( 90, 'z' );
+	game.keybind( 66, 'b' );
+	game.keybind( 82, 'r' );
+	game.keybind( 76, 'l' );
+
+	function bomb(_scene, _x, _y, _block){
+		var bomb = new PhyBoxSprite( 256, 256, enchant.box2d.STATIC_SPRITE, 1000.0, 1000.0, 1000.0, true);
+		//var bomb = new Sprite(256, 256);
+		var pm = Param.getInstance();
+
+    	bomb.image = game.assets['image/bomb_1.png'];
+    	bomb.frame = 0;
+		bomb.position = { x: _x, y : _y };
+		bomb.kind = "bomb";
+
+		bomb.tl.repeat(function(){
+			bomb.frame++;
+		}, 14).and().scaleTo(2.2, 30, enchant.Easing.LINEAR).
+		fadeOut(15).then(function(){
+			bomb.destroy();
+		});
+
+		_scene.addChild(bomb);
+		destroyBlockXY(_x, _y, _block);
+	}
 
 	function buildWall(_player, _scene, _world){
 		var surface1	= new Surface( 1, game.height*2);
@@ -116,7 +143,40 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 	var boundRatio = game.fps * 2;
 	var isFirstTime = true;
 
-	function destroyBlock(_target, _block, _player, _pad, _scene, _world){
+	function checkRange(_x, _y, _block){
+		var isInsideRange = false;
+		var sx = _x - 128;
+		var sy = _y - 128;
+		var dx = _x + 128;
+		var dy = _y + 128;
+
+		if( (_block.x < dx) && (sx < _block.x + _block.width) &&
+			(_block.y < dy) && (sy < _block.y + _block.height)) {
+			isInsideRange = true;
+		}
+		return isInsideRange;
+	}
+
+	function destroyBlockXY(_x, _y, _block){
+		if(isYamochiMode == false){ 
+			do{
+				var tmp_block = _block.pop();
+				tmp_block.destroy();
+			}while(_block.length > 0);
+		}
+		else{
+			for(var ii=0; ii<_block.length; ii++){
+				var tmp_block = _block[ii];
+				if(checkRange(_x, _y, tmp_block) == true){
+					sDestBlockArray.push(tmp_block);
+					_block.splice(ii, 1);
+					tmp_block.destroy();
+				}
+			}
+		}
+	}
+
+	function destroyBlock(_target, _block){
 		var ii;
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
@@ -149,9 +209,43 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		});
 	}
 
+	function buildSquare(_player, _color, _width, _height, _x, _y){
+		var surface = new Surface( _width, _height);
+		var sprite = new PhyBoxSprite( surface.width, surface.height, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.0, 0.0, true);
+		var s_x;
+		var s_y;
+
+		surface.context.fillStyle = _color;
+		surface.context.fillRect(0, 0, surface.width, surface.height);
+
+		if(_x == undefined){
+			s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
+		}
+		else{
+			s_x = _x;
+		}
+		if(_y == undefined){
+			//s_y = Math.floor(_player.y) - Math.floor(surface.height);
+			s_y = 150;
+		}
+		else{
+			s_y = _y;
+		}
+
+		console.log("ball x = " + s_x + " ball y = " + s_y);
+
+        sprite.image = game.assets['image/3ca.png'];
+		sprite.frame = 0;
+		sprite.position = { x : s_x, y : s_y };
+		sprite.isAwake = true;
+		sprite.kind = "ball";
+
+		return sprite;
+	};
+
 	function buildBall(_player, _color, _rad, _x, _y){
 		var surface = new Surface( _rad*2, _rad*2);
-		var sprite = new PhyCircleSprite(_rad, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.2, 0.2, false);
+		var sprite = new PhyCircleSprite(_rad, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.0, 0.0, false);
 		var s_x;
 		var s_y;
 
@@ -194,8 +288,9 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 	}
 
 	function divideBall(_player, _scene, _world, _x, _y){
-		var ball = buildBall(_player, "red", 50/2, _x, _y); 
-		red_ball.push(ball);
+		var ball; 
+		ball = buildBall(_player, "red", 50/2, _x, _y); 
+		sBallArray.push(ball);
 		ball.applyImpulse(new b2Vec2(0.0, 10.0));
 		setBallCallback(ball, _world);
 		_scene.addChild(ball);
@@ -208,7 +303,7 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		var s_h = 10;
 		var term_line = 10*10;
 		var surface;
-		var sprite = Array();
+		var sprite = Array(0);
 		var ii, jj, cnt;
 		var s_x, s_y;
 
@@ -238,31 +333,31 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 
 				sprite[cnt] = new PhyBoxSprite( s_w, s_h,
 												enchant.box2d.STATIC_SPRITE,
-												1.0, 0.3, 0.8, true);
+												1.0, 0.0, 0.0, true);
 				sprite[cnt].image = surface;
 				sprite[cnt].color = surface.context.fillStyle;
 				sprite[cnt].position = { x : ii, y : jj };
 				sprite[cnt].kind = "block";
 
-//				_scene.addChild(sprite[cnt]);
 				sBlockGroup.addChild(sprite[cnt]);
 				cnt++;
 			}
 		}
 		_scene.addChild(sBlockGroup);
 
-		sBlockGroup.addEventListener(Event.CHILD_REMOVED, function(e){
-			var tmp_block = sDestBlockArray.pop();
-			var col = tmp_block.color;
-			var x = tmp_block.position.x;
-			var y = tmp_block.position.y;
+		if(isYamochiMode == true){
+			sBlockGroup.addEventListener(Event.CHILD_REMOVED, function(e){
+				var tmp_block = sDestBlockArray.pop();
+				var col = tmp_block.color;
+				var x = tmp_block.position.x;
+				var y = tmp_block.position.y;
 
-console.log("Block removed. col = " + col + " length = " + red_ball.length);
-
-			if((col == "#0000ff") && (red_ball.length < 5)){
-				divideBall(_player, _scene, _world, x, y);
-			}
-		});
+				if(isYamochiMode == true){
+					if(((col == "#0000ff") && (sBallArray.length < 5)) && (isBomberMode == false))
+						divideBall(_player, _scene, _world, x, y);
+				}
+			});
+		}
 
 		return sprite;
 	};
@@ -285,7 +380,7 @@ console.log("Block removed. col = " + col + " length = " + red_ball.length);
 
         retryButton.addEventListener(Event.TOUCH_END, function(){
 			game.popScene();
-			game.replaceScene(startScene());
+			game.replaceScene(titleScene());
         });
 
 		return scene;
@@ -306,13 +401,25 @@ console.log("Block removed. col = " + col + " length = " + red_ball.length);
 
 		scene.addEventListener(Event.TOUCH_START, function(e) {
 			game.popScene();
-			game.replaceScene(startScene());
+			game.replaceScene(titleScene());
 		});
 
 		return scene;
 	};
 
-	var red_ball;
+	var sBallArray;
+	var sBombArray;
+
+	var isBomberMode = false;
+
+	var isYamochiMode = false;
+
+	var prevLength = 0;
+	var currentLength = 0;
+	var assertCount = 0;
+	var WATCH_DOG_COUNT = 180;
+	var sWatchDogCount = 0;
+
 	var startScene = function (){
 		//var world = new PhysicsWorld( 0.0, 9.8 );
 		var world = new PhysicsWorld( 0.0, 0.01 );
@@ -322,17 +429,23 @@ console.log("Block removed. col = " + col + " length = " + red_ball.length);
 
 		var player = buildPlayerBlock(100, 12, pad, scene, world);
 		var block = buildBlocks(scene, 10, player, pad, world);
-		red_ball = new Array(0);
+		sBallArray = new Array(0);
 
 		for(ii=0; ii<1; ii++){
-			var ball = buildBall(player, "red", 50/2); 
+			var ball; 
+			if(isYamochiMode == true){
+				ball = buildBall(player, "red", 50/2); 
+			}
+			else{
+				ball = buildSquare(player, "red", 43, 23); 
+			}
 			ball.isAwake = true;
 			ball.setAwake(ball.isAwake);
-			ball.applyImpulse( new b2Vec2(0.3, 0.5) )
+			ball.applyImpulse( new b2Vec2(0.3, 2.0) )
 			scene.addChild(ball);
-			red_ball.push(ball);
+			sBallArray.push(ball);
 
-console.log("red_ball.length = " + red_ball.length);
+console.log("sBallArray.length = " + sBallArray.length);
 
 			setPlayerCallback(player, ball);
 			setBallCallback(ball, world);
@@ -351,22 +464,42 @@ console.log("red_ball.length = " + red_ball.length);
 				}
 
 				if(input.g){
-					for(var ii=0; ii<red_ball.length; ii++){
-						var ball = red_ball[ii];
+					for(var ii=0; ii<sBallArray.length; ii++){
+						var ball = sBallArray[ii];
 						ball.applyImpulse(new b2Vec2(0.0, 5.0));
 					}
 				}
+
 				if(input.z){
-					for(var ii=0; ii<red_ball.length; ii++){
-						var ball = red_ball[ii];
+					for(var ii=0; ii<sBallArray.length; ii++){
+						var ball = sBallArray[ii];
 						ball.applyImpulse(new b2Vec2(0.0, -5.0));
 					}
 				}
+
+				if(input.r){
+					for(var ii=0; ii<sBallArray.length; ii++){
+						var ball = sBallArray[ii];
+						ball.applyImpulse(new b2Vec2(5.0, 0.0));
+					}
+				}
+
+				if(input.l){
+					for(var ii=0; ii<sBallArray.length; ii++){
+						var ball = sBallArray[ii];
+						ball.applyImpulse(new b2Vec2(-5.0, 0.0));
+					}
+				}
+
 				if(input.t){
-					for(var ii=0; ii<red_ball.length; ii++){
-						var ball = red_ball[ii];
+					for(var ii=0; ii<sBallArray.length; ii++){
+						var ball = sBallArray[ii];
 						ball.applyTorque(0.3);
 					}
+				}
+
+				if(input.b){
+					isBomberMode = true;
 				}
 
 				if (input.down)  {
@@ -391,18 +524,55 @@ console.log("red_ball.length = " + red_ball.length);
 
 			{
 				/* focus on ball */
-				if(red_ball.length <= 0){
+				if(sBallArray.length <= 0){
 					game.pushScene(gameoverScene());
+				}
+				else{
+					sWatchDogCount++;
+					if(sWatchDogCount >= WATCH_DOG_COUNT){
+						if((prevLength == 0) && (currentLength == 0)){
+							prevLength = sBallArray.length;
+						}
+						else {
+							currentLength = sBallArray.length;
+							if(prevLength == currentLength){
+								assertCount++;
+								if(assertCount > 3){
+									for(var ii=0; ii<sBallArray.length; ii++){
+										if((sBallArray[ii].position.x > game.width) ||
+										   (sBallArray[ii].position.x < 0)		  	||
+										   (sBallArray[ii].position.y > game.height)||
+										   (sBallArray[ii].position.y < 0))
+										{
+											if(sBallArray[ii].destroy != undefined){
+												sBallArray[ii].destroy();
+											}
+											sBallArray.splice(ii, 1);
+											assertCount = 0;
+										}
+									}
+								}
+								else if(assertCount > 50){
+									for(var ii=0; ii<sBallArray.length; ii++){
+										if(sBallArray[ii].destroy != undefined){
+											sBallArray[ii].destroy();
+										}
+										sBallArray.splice(ii, 1);
+									}
+								}
+							}
+						}
+					}
 				}
 
 				if(block.length <= 0){
-					game.pushScene(gameclearScene());
+					game.replaceScene(gameclearScene());
 				}
 
-				for(var ii=0; ii<red_ball.length; ii++){
-					var ball = red_ball[ii];
-					var moveX = red_ball[ii].x;
-					var moveY = red_ball[ii].y;
+				for(var ii=0; ii<sBallArray.length; ii++){
+					var ball = sBallArray[ii];
+					var moveX = sBallArray[ii].x;
+					var moveY = sBallArray[ii].y;
 
 					if(ball.isAwake == false){
 						move_distance -= player.position.x;
@@ -441,9 +611,35 @@ console.log("red_ball.length = " + red_ball.length);
 							}
 							else if(obj.kind == "block") {
 								ball.setAwake(false);
-								destroyBlock(obj, block, player, pad, scene, world);
-								ball.applyImpulse(new b2Vec2(0.0, 2.0));
+								destroyBlock(obj, block);
+
+								if(isYamochiMode == true){
+									ball.applyImpulse(new b2Vec2(0.0, 2.0));
+								}
+								else {
+									var zx = ball.vx;
+									var zy = ball.vy - 2.0;
+									if(zx > 0){
+										zx += 1.0;
+									}
+									else {
+										zx -= 1.0;
+									}
+									ball.applyImpulse(new b2Vec2(zx, zy));
+									ball.applyTorque(zx);
+								}
+								
 								ball.setAwake(true);
+								if(isBomberMode == true){
+									bomb(scene, ball.x, ball.y, block);
+									for(var ii=0; ii<sBallArray.length; ii++){
+										if(ball == sBallArray[ii]){
+											sBallArray.splice(ii, 1);
+											ball.destroy();
+										}
+									}
+									isBomberMode = false;
+								}
 							}
 							else if(obj.kind == "ball"){
 //								obj.destroy();
@@ -451,34 +647,26 @@ console.log("red_ball.length = " + red_ball.length);
 							else if(obj.kind == "bottom_wall"){
 								var isFoundBall = false;
 								ball.setAwake(false);
-								for(var ii=0; ii<red_ball.length; ii++){
-									if(ball == red_ball[ii]){
-console.log("red_ball dec(splice) = " + ii + " left = " + red_ball.length);
-										red_ball.splice(ii, 1);
+								for(var ii=0; ii<sBallArray.length; ii++){
+									console.log("pos x = " + sBallArray[ii].position.x + " y = " + sBallArray[ii].position.y);
+									console.log("x = " + sBallArray[ii].x + " y = " + sBallArray[ii].y);
+									if(ball == sBallArray[ii]){
+										sBallArray.splice(ii, 1);
 										ball.destroy();
 										isFoundBall = true;
 									}
-								}
-								if(isFoundBall == false){
-									for(var ii=0; ii<red_ball.length; ii++){
-										console.log("type["+ii+"] = " + red_ball[ii]);
-										console.log("destroy? = " + red_ball[ii].destroy);
-										console.log("pos x = " + red_ball[ii].position.x + " y = " + red_ball[ii].position.y);
-										console.log("x = " + red_ball[ii].x + " y = " + red_ball[ii].y);
-										if((red_ball[ii].position.x > game.width) ||
-										   (red_ball[ii].position.x < 0)		  ||
-										   (red_ball[ii].position.y > game.height) ||
-										   (red_ball[ii].position.y < 0))
-										{
-											console.log("delete orphan ball");
-											if(red_ball[ii].destroy != undefined){
-												console.log("probably ok?");
-												red_ball[ii].destroy();
-											}
-											red_ball.splice(ii, 1);
+									else if((sBallArray[ii].position.x > game.width) ||
+									   (sBallArray[ii].position.x < 0)		  		 ||
+									   (sBallArray[ii].position.y > game.height) 	 ||
+									   (sBallArray[ii].position.y < 0))
+									{
+										console.log("delete orphan ball");
+										if(sBallArray[ii].destroy != undefined){
+											console.log("probably ok?");
+											sBallArray[ii].destroy();
 										}
+										sBallArray.splice(ii, 1);
 									}
-									ball.destroy();
 								}
 								ball.setAwake(true);
 								console.log("is found destroy target ball = " + isFoundBall);
@@ -495,8 +683,37 @@ console.log("red_ball dec(splice) = " + ii + " left = " + red_ball.length);
 		return scene;
 	};
 
+	var titleScene = function (){
+		var scene = new Scene();
+
+		var titleSprite = new Sprite(252, 320);
+		var startButton = new Button("START", "light");
+		var yamochiButton = new Button("Yamochi", "light");
+
+    	titleSprite.image = game.assets['image/ytitle.png'];
+
+		startButton.moveTo(50, 230);
+		yamochiButton.moveTo(130, 230);
+
+		scene.addChild(titleSprite);
+		scene.addChild(startButton);
+		scene.addChild(yamochiButton);
+
+        startButton.addEventListener(Event.TOUCH_END, function(){
+			isYamochiMode = false;
+			game.replaceScene(startScene());
+        });
+
+		yamochiButton.addEventListener(Event.TOUCH_END, function(){
+			isYamochiMode = true;
+			game.replaceScene(startScene());
+        });
+
+		return scene;
+	};
+
 	game.onload = function(){
-		game.replaceScene(startScene());
+		game.replaceScene(titleScene());
 	}
 
     game.start();
