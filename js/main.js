@@ -48,12 +48,8 @@ window.onload = function(){
 
     var game = new Core(320, 320);
     game.fps = 60;
-	game.preload('image/yamochi.png');
-	game.preload('image/gameover.png');
-	game.preload('image/clear.png');
-	game.preload('image/bomb_1.png');
-	game.preload('image/3ca.png');
-	game.preload('image/ytitle.png');
+	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
+				 'image/bomb_1.png', 'image/3ca.png', 'image/ytitle.png');
 	game.keybind( 71, 'g' );
 	game.keybind( 84, 't' );
 	game.keybind( 90, 'z' );
