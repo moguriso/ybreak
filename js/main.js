@@ -6,6 +6,57 @@ enchant.ENV.SOUND_ENABLED_ON_MOBILE_SAFARI = false;
 
 window.onload = function(){
 
+	var sImmotalBlockCount = 0;
+	var sBlockGroup;
+
+	var upPower = false;
+	var downPower = false;
+	var isFirstTime = true;
+
+	var sDestBlockArray;
+    var game = new Core(320, 320);
+
+	var sBallArray;
+	var sBombArray;
+
+	var isBomberMode = false;
+	var isYamochiMode = false;
+
+	var prevLength = 0;
+	var currentLength = 0;
+	var assertCount = 0;
+	var WATCH_DOG_COUNT = 180;
+	var sWatchDogCount = 0;
+
+    game.fps = 60;
+	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
+				 'image/bomb_1.png', 'image/3ca.png', 'image/ytitle.png');
+	game.keybind( 71, 'g' );
+	game.keybind( 84, 't' );
+	game.keybind( 90, 'z' );
+	game.keybind( 66, 'b' );
+	game.keybind( 82, 'r' );
+	game.keybind( 76, 'l' );
+	game.keybind( 83, 's' );
+
+	function initialize_params(){
+		sImmotalBlockCount  = 0;
+		upPower = false;
+		downPower = false;
+		isFirstTime = true;
+		sDestBlockArray = new Array();
+		sBallArray = new Array();
+		sBombArray = new Array();
+		isBomberMode = false;
+		//isYamochiMode = false;
+
+		prevLength = 0;
+		currentLength = 0;
+		assertCount = 0;
+		WATCH_DOG_COUNT = 180;
+		sWatchDogCount = 0;
+	}
+
 	var Param = (function() {
 
 		var instance;
@@ -41,26 +92,32 @@ window.onload = function(){
 		};
 	})();
 
-	var touch_pos_x = 0;
-	var touch_pos_y = 0;
+	function destroyBall(_ballArray, _obj, _isForceDestroy){
+		var isDestroyComplete = false;
+		for(var ii=0; ii<_ballArray.length; ii++){
+			if((_isForceDestroy == true) ||
+			   (_obj == _ballArray[ii])  ||
+			   ((_ballArray[ii].position.x > game.width) ||
+			    (_ballArray[ii].position.x < 0)		  	 ||
+			    (_ballArray[ii].position.y > game.height)||
+			    (_ballArray[ii].position.y < 0)))
+			{
+				if(_ballArray[ii].destroy != undefined){
+					_ballArray[ii].destroy();
+				}
+				_ballArray.splice(ii, 1);
+				isDestroyComplete = true;
+			}
+		}
+		return isDestroyComplete;
+	}
 
-	var sDestBlockArray = new Array();
-
-    var game = new Core(320, 320);
-    game.fps = 60;
-	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
-				 'image/bomb_1.png', 'image/3ca.png', 'image/ytitle.png');
-	game.keybind( 71, 'g' );
-	game.keybind( 84, 't' );
-	game.keybind( 90, 'z' );
-	game.keybind( 66, 'b' );
-	game.keybind( 82, 'r' );
-	game.keybind( 76, 'l' );
+	function forceDestroyBall(_ball){
+		destroyBall(_ball, true);
+	}
 
 	function bomb(_scene, _x, _y, _block){
 		var bomb = new PhyBoxSprite( 256, 256, enchant.box2d.STATIC_SPRITE, 1000.0, 1000.0, 1000.0, true);
-		//var bomb = new Sprite(256, 256);
-		var pm = Param.getInstance();
 
     	bomb.image = game.assets['image/bomb_1.png'];
     	bomb.frame = 0;
@@ -101,13 +158,8 @@ window.onload = function(){
 		top_sprite.position = { x : 0, y : 0 };
 		top_sprite.kind = "top_wall";
 		bottom_sprite.image = surface2;
-		//bottom_sprite.position.x = 0;
-		//bottom_sprite.position.y = (_player.y + _player.height);
 		bottom_sprite.position = { x : 0, y : (_player.y + (_player.height*3)) };
 		bottom_sprite.kind = "bottom_wall";
-
-console.log("x = " + bottom_sprite.x + " y = " + bottom_sprite.y);
-console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.position.y);
 
 		_scene.addChild(left_sprite);
 		_scene.addChild(right_sprite);
@@ -115,9 +167,9 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		_scene.addChild(bottom_sprite);
 	};
 
-	function buildPlayerBlock(/*_posX, _posY */ _width, _height, _pad, _world){
+	function buildPlayerBlock(_width, _height, _pad, _world){
 		var surface = new Surface( _width, _height);
-		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 10.0, 0.3, true);
+		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 20.0, 0.5, true);
 		var s_x = Math.floor(game.width/2) - Math.floor(surface.width/2);
 		var s_y = Math.floor(game.height) - Math.floor(surface.height) - _pad.height;
 
@@ -133,11 +185,6 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 
 		return sprite;
 	};
-
-	var upPower = false;
-	var downPower = false;
-	var boundRatio = game.fps * 2;
-	var isFirstTime = true;
 
 	function checkRange(_x, _y, _block){
 		var isInsideRange = false;
@@ -177,9 +224,11 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
 			if(_target == tmp_block){
-				sDestBlockArray.push(tmp_block);
-				_block.splice(ii, 1);
-				tmp_block.destroy();
+				if(tmp_block.color != "#000000"){
+					sDestBlockArray.push(tmp_block);
+					_block.splice(ii, 1);
+					tmp_block.destroy();
+				}
 			}
 		}
 	}
@@ -292,23 +341,70 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		_scene.addChild(ball);
 	}
 
-	var sBlockGroup;
+	var sBlockStage1 = [ 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 1, 9, 9, 1, 9, 9, 9, 
+						 0, 9, 1, 1, 9, 9, 1, 1, 9, 0, 
+						 0, 9, 1, 1, 9, 9, 1, 1, 9, 0, 
+						 9, 9, 9, 1, 9, 9, 1, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 2, 9, 9, 3, 3, 9, 9, 2, 9 ];
 
-	function buildBlocks(_scene, _lines, _player, _pad, _world){
+	var sBlockStage2 = [ 9, 0, 0, 9, 9, 9, 9, 0, 0, 9, 
+						 1, 9, 9, 9, 9, 9, 9, 9, 9, 1, 
+						 1, 9, 9, 9, 9, 9, 9, 9, 9, 1, 
+						 0, 9, 9, 9, 9, 9, 9, 9, 9, 0, 
+						 0, 9, 9, 9, 9, 9, 9, 9, 9, 0, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 2, 9, 9, 3, 3, 9, 9, 2, 9 ];
+
+	var sBlockStage3 = [ 9, 9, 9, 9, 1, 1, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 2, 9, 9, 3, 3, 9, 9, 2, 9 ];
+
+	var sBlockStage4 = [ 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 1, 1, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 3, 3, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 2, 9, 9, 9, 9, 9, 9, 2, 9 ];
+
+	function buildBlocks(_scene, _blk_array, _lines, _player, _pad, _world){
 		var s_w = 30;
 		var s_h = 10;
 		var term_line = 10*10;
 		var surface;
-		var sprite = Array(0);
+		var sprite = new Array();
 		var ii, jj, cnt;
 		var s_x, s_y;
+
+		var start_x = 15;
+		var end_x = game.width - 10;
+		var start_y = 10;
+		var end_y = term_line - 10;
 
 		sBlockGroup = new Group();
 
 		cnt = 0;
-		for(ii=0; ii<game.width; ii+=s_w){
-			for(jj=0; jj<term_line; jj+=s_h){
-				var i_col = cnt%4;
+		for(jj=start_y; jj<end_y; jj+=s_h){
+			NEXT:
+			for(ii=start_x; ii<end_x; ii+=s_w){
+				var tmp_sprite;
+				var pos_x = ii+10;
+				var pos_y = jj;
+				var i_col = _blk_array[cnt++];
+
+				if(i_col == 9){
+					continue NEXT;
+				}
 
 				surface = new Surface(s_w, s_h);
 				switch(i_col) {
@@ -323,20 +419,22 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 						break;
 					case 3:
 						surface.context.fillStyle = "black";
+						sImmotalBlockCount++;
 						break;
 				}
 				surface.context.fillRect(0, 0, surface.width, surface.height);
 
-				sprite[cnt] = new PhyBoxSprite( s_w, s_h,
+				tmp_sprite  = new PhyBoxSprite( s_w, s_h,
 												enchant.box2d.STATIC_SPRITE,
 												1.0, 0.0, 0.0, true);
-				sprite[cnt].image = surface;
-				sprite[cnt].color = surface.context.fillStyle;
-				sprite[cnt].position = { x : ii, y : jj };
-				sprite[cnt].kind = "block";
+				tmp_sprite.image = surface;
+				tmp_sprite.color = surface.context.fillStyle;
+				tmp_sprite.position = { x : pos_x, y : pos_y };
+				tmp_sprite.kind = "block";
 
-				sBlockGroup.addChild(sprite[cnt]);
-				cnt++;
+				sprite.push(tmp_sprite);
+				var last_pos = sprite.length - 1; 
+				sBlockGroup.addChild(sprite[last_pos]);
 			}
 		}
 		_scene.addChild(sBlockGroup);
@@ -358,11 +456,34 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		return sprite;
 	};
 
-	var gameclearScene = function() {
+	function getBlockByStageNumber(_num){
+		var retBlocks;
+		console.log("num = " + _num);
+		switch(_num){
+			case 4:
+				retBlocks = sBlockStage4;
+				break;
+			case 3:
+				retBlocks = sBlockStage3;
+				break;
+			case 2:
+				retBlocks = sBlockStage2;
+				break;
+			case 1:
+			default:
+				retBlocks = sBlockStage1;
+				break;
+		}
+		return retBlocks;
+	}
+
+	var gameclearScene = function(_stage_number) {
 		var scene = new Scene();
 		var screen_x = game.width;
 		var screen_y = game.height;
 		var retryButton = new Button("retry", "light");
+		var nextButton = new Button("next", "light");
+		var exitButton = new Button("exit", "light");
 		var over_logo = new Sprite(267, 48);
 
     	over_logo.image = game.assets['image/clear.png'];
@@ -375,6 +496,22 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		scene.addChild(retryButton);
 
         retryButton.addEventListener(Event.TOUCH_END, function(){
+			var current_stage = _stage_number;
+			game.replaceScene(gameStage(current_stage));
+        });
+
+		nextButton.moveTo(120, 240);
+		scene.addChild(nextButton);
+
+        nextButton.addEventListener(Event.TOUCH_END, function(){
+			var next_stage = _stage_number+1;
+			game.replaceScene(gameStage(next_stage));
+        });
+
+		exitButton.moveTo(240, 240);
+		scene.addChild(exitButton);
+
+        exitButton.addEventListener(Event.TOUCH_END, function(){
 			game.popScene();
 			game.replaceScene(titleScene());
         });
@@ -382,10 +519,12 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 		return scene;
 	};
 
-	var gameoverScene = function() {
+	var gameoverScene = function(_stage_number) {
 		var scene = new Scene();
 		var screen_x = game.width;
 		var screen_y = game.height;
+		var retryButton = new Button("retry", "light");
+		var exitButton = new Button("exit", "light");
 
 		var over_logo = new Sprite(189, 97);
     	over_logo.image = game.assets['image/gameover.png'];
@@ -394,58 +533,62 @@ console.log("pos x = " + bottom_sprite.position.x + " y = " + bottom_sprite.posi
 
     	scene.addChild(over_logo);
 		scene.backgroundColor = 'rgba(0, 0, 255, 0.5)';
+		
+		retryButton.moveTo(180, 240);
+		scene.addChild(retryButton);
 
-		scene.addEventListener(Event.TOUCH_START, function(e) {
+        retryButton.addEventListener(Event.TOUCH_END, function(){
+			var current_stage = _stage_number;
+			game.popScene();
+			game.replaceScene(gameStage(current_stage));
+        });
+
+		exitButton.moveTo(240, 240);
+		scene.addChild(exitButton);
+
+        exitButton.addEventListener(Event.TOUCH_END, function(){
 			game.popScene();
 			game.replaceScene(titleScene());
-		});
+        });
 
 		return scene;
 	};
 
-	var sBallArray;
-	var sBombArray;
-
-	var isBomberMode = false;
-
-	var isYamochiMode = false;
-
-	var prevLength = 0;
-	var currentLength = 0;
-	var assertCount = 0;
-	var WATCH_DOG_COUNT = 180;
-	var sWatchDogCount = 0;
-
-	var startScene = function (){
-		//var world = new PhysicsWorld( 0.0, 9.8 );
+	var gameStage = function (_stage){
 		var world = new PhysicsWorld( 0.0, 0.01 );
 		var scene = new Scene();
 		var pad = new Pad();
 		var ii = 0;
 
-		var player = buildPlayerBlock(100, 12, pad, scene, world);
-		var block = buildBlocks(scene, 10, player, pad, world);
+		var ball; 
+		var player;
+		var block;
+
+		initialize_params();
+
+		player = buildPlayerBlock(100, 12, pad, scene, world);
+		block = buildBlocks(scene, getBlockByStageNumber(_stage), 10, player, pad, world);
 		sBallArray = new Array(0);
 
-		for(ii=0; ii<1; ii++){
-			var ball; 
-			if(isYamochiMode == true){
-				ball = buildBall(player, "red", 50/2); 
-			}
-			else{
-				ball = buildSquare(player, "red", 43, 23); 
-			}
-			ball.isAwake = true;
-			ball.setAwake(ball.isAwake);
-			ball.applyImpulse( new b2Vec2(0.3, 2.0) )
-			scene.addChild(ball);
-			sBallArray.push(ball);
+console.log("stage = " + _stage);
 
-console.log("sBallArray.length = " + sBallArray.length);
-
-			setPlayerCallback(player, ball);
-			setBallCallback(ball, world);
+		if(isYamochiMode == true){
+			ball = buildBall(player, "red", 50/2); 
 		}
+		else{
+			ball = buildSquare(player, "red", 43, 23); 
+		}
+
+		ball.isAwake = true;
+		ball.setAwake(ball.isAwake);
+		ball.applyImpulse( new b2Vec2(0.3, 2.0) )
+
+		scene.addChild(ball);
+		sBallArray.push(ball);
+
+		setPlayerCallback(player, ball);
+		setBallCallback(ball, world);
+
 		buildWall(player, scene, world);
 
 		scene.addChild(player);
@@ -453,6 +596,138 @@ console.log("sBallArray.length = " + sBallArray.length);
 		scene.addEventListener(Event.ENTER_FRAME, function(e){
 			var move_distance = player.position.x;
 			var input = game.input;
+			{
+				/* focus on ball */
+				for(var ii=0; ii<sBallArray.length; ii++){
+					var ball = sBallArray[ii];
+					var posX = sBallArray[ii].x;
+					var posY = sBallArray[ii].y;
+
+					var deadLine = (player.y + (player.height) + 5);
+					if(posY >= deadLine){
+						destroyBall(sBallArray, ball);
+					}
+
+					if(ball.isAwake == false){
+						move_distance -= player.position.x;
+						if (input.up) {
+							ball.isAwake = true;
+						}
+						if(input.left) {
+							ball.applyTorque(-1.0);
+						}
+						if(input.right) {
+							ball.applyTorque(1.0);
+						}
+						ball.setAwake(ball.isAwake);
+					}
+					else{
+						ball.contact(function(obj){
+							if(obj.kind == "player"){
+								if(upPower == true){
+									upPower = false;
+									downPower = false;
+									ball.applyImpulse( new b2Vec2(0.0, -10.0) );
+									console.log("upPower");
+									ball.isAwake = true;
+								}
+								else if(downPower == true){
+									if(ball.y+ball.height <= player.y){
+										ball.y = player.y - ball.height;
+									}
+									upPower = false;
+									downPower = false;
+									console.log("downPower");
+									ball.isAwake = false;
+								}
+								ball.setAwake(ball.isAwake);
+							}
+							else if(obj.kind == "block") {
+								ball.setAwake(false);
+								destroyBlock(obj, block);
+
+								if(obj.color == "#000000"){
+									var zx = ball.position.x;
+									var zy = ball.vy + 1.2;
+									var center = game.width / 2;
+									if(zx > center){
+										zx = ball.vx - 1.2;
+									}
+									else { 
+										zx = ball.vx + 1.2;
+									}
+
+									if(obj.y >= ball.position.y){
+										zy *= -1;
+									}
+
+									ball.applyImpulse(new b2Vec2(zx, zy));
+								}
+								else if(isYamochiMode == true){
+									ball.applyImpulse(new b2Vec2(0.0, 2.0));
+								}
+								else {
+									var zx = ball.vx;
+									var zy = ball.vy - 2.0;
+									if(zx > 0){
+										zx += 1.0;
+									}
+									else {
+										zx -= 1.0;
+									}
+									ball.applyImpulse(new b2Vec2(zx, zy));
+									ball.applyTorque(zx);
+								}
+								
+								ball.setAwake(true);
+								if(isBomberMode == true){
+									bomb(scene, ball.x, ball.y, block);
+									destroyBall(sBallArray, ball);
+									isBomberMode = false;
+								}
+							}
+							else if(obj.kind == "ball"){
+//								obj.destroy();
+							}
+							else if(obj.kind == "bottom_wall"){
+								destroyBall(sBallArray, ball);
+							}
+						});
+					}
+				}
+
+				if(sBallArray.length <= 0){
+					game.pushScene(gameoverScene(_stage));
+				}
+				else{
+					sWatchDogCount++;
+					if(sWatchDogCount >= WATCH_DOG_COUNT){
+						if((prevLength == 0) && (currentLength == 0)){
+							prevLength = sBallArray.length;
+						}
+						else {
+							currentLength = sBallArray.length;
+							if(prevLength == currentLength){
+								assertCount++;
+								if(assertCount > 3){
+									if(destroyBall(sBallArray) == true)
+										assertCount = 0;
+								}
+								else if(assertCount > 50){
+									forceDestroyBall(sBallArray);
+									assertCount = 0;
+								}
+							}
+						}
+					}
+				}
+				/* clear check => or rather, all blocks destruction is completed? */
+				var lastBlockLength = block.length - sImmotalBlockCount;
+				if(lastBlockLength <= 0){
+					game.replaceScene(gameclearScene(_stage));
+				}
+			}
+
 			{
 				/* focus on player */
 				if (input.up)    {
@@ -494,6 +769,11 @@ console.log("sBallArray.length = " + sBallArray.length);
 					}
 				}
 
+				if(input.s){
+					var lastBlockLength = block.length - sImmotalBlockCount;
+					console.log("block length = " + block.length + " last = " + lastBlockLength);
+				}
+
 				if(input.b){
 					isBomberMode = true;
 				}
@@ -517,160 +797,6 @@ console.log("sBallArray.length = " + sBallArray.length);
 					player.x = game.width - player.width;
 				}
 			}
-
-			{
-				/* focus on ball */
-				if(sBallArray.length <= 0){
-					game.pushScene(gameoverScene());
-				}
-				else{
-					sWatchDogCount++;
-					if(sWatchDogCount >= WATCH_DOG_COUNT){
-						if((prevLength == 0) && (currentLength == 0)){
-							prevLength = sBallArray.length;
-						}
-						else {
-							currentLength = sBallArray.length;
-							if(prevLength == currentLength){
-								assertCount++;
-								if(assertCount > 3){
-									for(var ii=0; ii<sBallArray.length; ii++){
-										if((sBallArray[ii].position.x > game.width) ||
-										   (sBallArray[ii].position.x < 0)		  	||
-										   (sBallArray[ii].position.y > game.height)||
-										   (sBallArray[ii].position.y < 0))
-										{
-											if(sBallArray[ii].destroy != undefined){
-												sBallArray[ii].destroy();
-											}
-											sBallArray.splice(ii, 1);
-											assertCount = 0;
-										}
-									}
-								}
-								else if(assertCount > 50){
-									for(var ii=0; ii<sBallArray.length; ii++){
-										if(sBallArray[ii].destroy != undefined){
-											sBallArray[ii].destroy();
-										}
-										sBallArray.splice(ii, 1);
-									}
-								}
-							}
-						}
-					}
-				}
-
-				if(block.length <= 0){
-					game.replaceScene(gameclearScene());
-				}
-
-				for(var ii=0; ii<sBallArray.length; ii++){
-					var ball = sBallArray[ii];
-					var moveX = sBallArray[ii].x;
-					var moveY = sBallArray[ii].y;
-
-					if(ball.isAwake == false){
-						move_distance -= player.position.x;
-						//ball.x -= move_distance;
-						if (input.up) {
-							ball.isAwake = true;
-						}
-						if(input.left) {
-							ball.applyTorque(-1.0);
-						}
-						if(input.right) {
-							ball.applyTorque(1.0);
-						}
-						ball.setAwake(ball.isAwake);
-					}
-					else{
-						ball.contact(function(obj){
-							if(obj.kind == "player"){
-								if(upPower == true){
-									upPower = false;
-									downPower = false;
-									ball.applyImpulse( new b2Vec2(0.0, -10.0) );
-									console.log("upPower");
-									ball.isAwake = true;
-								}
-								else if(downPower == true){
-									if(ball.y+ball.height <= player.y){
-										ball.y = player.y - ball.height;
-									}
-									upPower = false;
-									downPower = false;
-									console.log("downPower");
-									ball.isAwake = false;
-								}
-								ball.setAwake(ball.isAwake);
-							}
-							else if(obj.kind == "block") {
-								ball.setAwake(false);
-								destroyBlock(obj, block);
-
-								if(isYamochiMode == true){
-									ball.applyImpulse(new b2Vec2(0.0, 2.0));
-								}
-								else {
-									var zx = ball.vx;
-									var zy = ball.vy - 2.0;
-									if(zx > 0){
-										zx += 1.0;
-									}
-									else {
-										zx -= 1.0;
-									}
-									ball.applyImpulse(new b2Vec2(zx, zy));
-									ball.applyTorque(zx);
-								}
-								
-								ball.setAwake(true);
-								if(isBomberMode == true){
-									bomb(scene, ball.x, ball.y, block);
-									for(var ii=0; ii<sBallArray.length; ii++){
-										if(ball == sBallArray[ii]){
-											sBallArray.splice(ii, 1);
-											ball.destroy();
-										}
-									}
-									isBomberMode = false;
-								}
-							}
-							else if(obj.kind == "ball"){
-//								obj.destroy();
-							}
-							else if(obj.kind == "bottom_wall"){
-								var isFoundBall = false;
-								ball.setAwake(false);
-								for(var ii=0; ii<sBallArray.length; ii++){
-									console.log("pos x = " + sBallArray[ii].position.x + " y = " + sBallArray[ii].position.y);
-									console.log("x = " + sBallArray[ii].x + " y = " + sBallArray[ii].y);
-									if(ball == sBallArray[ii]){
-										sBallArray.splice(ii, 1);
-										ball.destroy();
-										isFoundBall = true;
-									}
-									else if((sBallArray[ii].position.x > game.width) ||
-									   (sBallArray[ii].position.x < 0)		  		 ||
-									   (sBallArray[ii].position.y > game.height) 	 ||
-									   (sBallArray[ii].position.y < 0))
-									{
-										console.log("delete orphan ball");
-										if(sBallArray[ii].destroy != undefined){
-											console.log("probably ok?");
-											sBallArray[ii].destroy();
-										}
-										sBallArray.splice(ii, 1);
-									}
-								}
-								ball.setAwake(true);
-								console.log("is found destroy target ball = " + isFoundBall);
-							}
-						});
-					}
-				}
-			}
 		});
 
 		pad.moveTo(game.width/2 - (pad.width/2), game.height-pad.height);
@@ -686,6 +812,7 @@ console.log("sBallArray.length = " + sBallArray.length);
 		var startButton = new Button("START", "light");
 		var yamochiButton = new Button("Yamochi", "light");
 
+		initialize_params();
     	titleSprite.image = game.assets['image/ytitle.png'];
 
 		startButton.moveTo(50, 230);
@@ -697,12 +824,12 @@ console.log("sBallArray.length = " + sBallArray.length);
 
         startButton.addEventListener(Event.TOUCH_END, function(){
 			isYamochiMode = false;
-			game.replaceScene(startScene());
+			game.replaceScene(gameStage(1));
         });
 
 		yamochiButton.addEventListener(Event.TOUCH_END, function(){
 			isYamochiMode = true;
-			game.replaceScene(startScene());
+			game.replaceScene(gameStage(1));
         });
 
 		return scene;
