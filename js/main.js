@@ -6,29 +6,10 @@ enchant.ENV.SOUND_ENABLED_ON_MOBILE_SAFARI = false;
 
 window.onload = function(){
 
-	var sImmotalBlockCount = 0;
-	var sBlockGroup;
-
-	var upPower = false;
-	var downPower = false;
-	var isFirstTime = true;
-
-	var sDestBlockArray;
     var game = new Core(320, 320);
-
-	var sBallArray;
-	var sBombArray;
-
-	var isBomberMode = false;
-	var isYamochiMode = false;
-
-	var prevLength = 0;
-	var currentLength = 0;
-	var assertCount = 0;
 	var WATCH_DOG_COUNT = 180;
-	var sWatchDogCount = 0;
 
-    game.fps = 60;
+    game.fps = 30;
 	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
 	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
 				 'image/bomb_1.png', 'image/3ca.png', 'image/title_true.png', 'image/p_ligo.png');
@@ -41,21 +22,21 @@ window.onload = function(){
 	game.keybind( 83, 's' );
 
 	function initialize_params(){
-		sImmotalBlockCount  = 0;
-		upPower = false;
-		downPower = false;
-		isFirstTime = true;
-		sDestBlockArray = new Array();
-		sBallArray = new Array();
-		sBombArray = new Array();
-		isBomberMode = false;
-		//isYamochiMode = false;
+		var pm = Param.getInstance();
 
-		prevLength = 0;
-		currentLength = 0;
-		assertCount = 0;
 		WATCH_DOG_COUNT = 180;
-		sWatchDogCount = 0;
+
+		pm.destBlkAr = new Array(0);
+		pm.ballAr = new Array(0);
+		pm.bombAr = new Array(0);
+		pm.imBlockCount = 0;
+		pm.prevLen		= 0;
+		pm.currentLen	= 0;
+		pm.assertCnt	= 0;
+		pm.watchdog		= 0;
+		pm.upP			= false;
+		pm.downP		= false;
+		pm.bombMode		= false;
 	}
 
 	var Param = (function() {
@@ -68,7 +49,19 @@ window.onload = function(){
 			};
 
 			// private member sample
-			var _random = 0;
+			var _random;
+			var _imBlockCount;
+			var _upPower;
+			var _downPower;
+			var _sBlockGroup;
+			var _sDestBlockArray;
+			var _sBallArray;
+			var _isBomberMode;
+			var _isYamochiMode;
+			var _prevLength = 0;
+			var _currentLength = 0;
+			var _assertCount = 0;
+			var _watchDogCount = 0;
 
     		return {
 				// public method
@@ -76,9 +69,94 @@ window.onload = function(){
 					_random = Math.floor(Math.random()*_ratio);
     		   		return _random;
     		  	},
-				clear : function() {
-				},
 				// public member
+        		imBlockCount : {
+        		    get: function() {
+        		        return this._imBlockCount;
+        		    },
+        		    set: function(cnt) {
+						this._imBlockCount = cnt;
+        		    }
+        		},
+        		upP : {
+        		    get: function() {
+        		        return this._upPower;
+        		    },
+        		    set: function(is) {
+						this._upPower = is;
+        		    }
+        		},
+        		downP : {
+        		    get: function() {
+        		        return this._downPower;
+        		    },
+        		    set: function(is) {
+						this._downPower = is;
+        		    }
+        		},
+        		blkGr : {
+        		    get: function() {
+        		        return this._sBlockGroup;
+        		    }
+        		},
+        		destBlkAr : {
+        		    get: function() {
+        		        return this._sDestBlockArray;
+        		    }
+        		},
+        		ballAr : {
+        		    get: function() {
+        		        return this._sBallArray;
+        		    }
+        		},
+        		bombMode : {
+        		    get: function() {
+        		        return this._isBomberMode;
+        		    },
+        		    set: function(is) {
+						this._isBomberMode = is;
+        		    }
+        		},
+        		yamochiMode : {
+        		    get: function() {
+        		        return this._isYamochiMode;
+        		    },
+        		    set: function(is) {
+						this._isYamochiMode = is;
+        		    }
+        		},
+        		prevLen: {
+        		    get: function() {
+        		        return this._prevLength;
+        		    },
+        		    set: function(cnt) {
+						this._prevLength = cnt;
+        		    }
+        		},
+        		currentLen: {
+        		    get: function() {
+        		        return this._currentLength;
+        		    },
+        		    set: function(cnt) {
+						this._currentLength = cnt;
+        		    }
+        		},
+        		assertCnt: {
+        		    get: function() {
+        		        return this._assertCount;
+        		    },
+        		    set: function(cnt) {
+						this._assertCount = cnt;
+        		    }
+        		},
+        		watchdog: {
+        		    get: function() {
+        		        return this._watchDogCount;
+        		    },
+        		    set: function(cnt) {
+						this._watchDogCount = cnt;
+        		    }
+        		},
     		};
 		};
 
@@ -127,12 +205,16 @@ window.onload = function(){
 		bomb.tl.repeat(function(){
 			bomb.frame++;
 		}, 14).and().scaleTo(2.2, 30, enchant.Easing.LINEAR).
+		and().then(function(){
+			destroyBlockXY(_x, _y, _block);
+		}).
 		fadeOut(15).then(function(){
 			bomb.destroy();
 		});
 
 		_scene.addChild(bomb);
-		destroyBlockXY(_x, _y, _block);
+		// tentative 
+		//destroyBlockXY(_x, _y, _block);
 	}
 
 	function buildWall(_player, _scene, _world){
@@ -223,7 +305,8 @@ window.onload = function(){
 	}
 
 	function destroyBlockXY(_x, _y, _block){
-		if(isYamochiMode == false){ 
+		var pm = Param.getInstance();
+		if(pm.yamochiMode == false){ 
 			do{
 				var tmp_block = _block.pop();
 				tmp_block.destroy();
@@ -233,7 +316,7 @@ window.onload = function(){
 			for(var ii=0; ii<_block.length; ii++){
 				var tmp_block = _block[ii];
 				if(checkRange(_x, _y, tmp_block) == true){
-					sDestBlockArray.push(tmp_block);
+					pm.destBlkAr.push(tmp_block);
 					_block.splice(ii, 1);
 					tmp_block.destroy();
 				}
@@ -243,11 +326,12 @@ window.onload = function(){
 
 	function destroyBlock(_target, _block){
 		var ii;
+		var pm = Param.getInstance();
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
 			if(_target == tmp_block){
 				if(tmp_block.color != "#444444"){
-					sDestBlockArray.push(tmp_block);
+					pm.destBlkAr.push(tmp_block);
 					_block.splice(ii, 1);
 					tmp_block.destroy();
 				}
@@ -356,8 +440,9 @@ window.onload = function(){
 
 	function divideBall(_player, _scene, _world, _x, _y){
 		var ball; 
+		var pm = Param.getInstance();
 		ball = buildBall(_player, "red", 50/2, _x, _y); 
-		sBallArray.push(ball);
+		pm.ballAr.push(ball);
 		ball.applyImpulse(new b2Vec2(0.0, 10.0));
 		setBallCallback(ball, _world);
 		_scene.addChild(ball);
@@ -413,8 +498,9 @@ window.onload = function(){
 		var end_x = game.width - 10;
 		var start_y = 10;
 		var end_y = term_line - 10;
+		var pm = Param.getInstance();
 
-		sBlockGroup = new Group();
+		pm.blkGr = new Group();
 
 		cnt = 0;
 		for(jj=start_y; jj<end_y; jj+=s_h){
@@ -441,8 +527,12 @@ window.onload = function(){
 						surface.context.fillStyle = "yellow";
 						break;
 					case 3:
+						var imCount = parseInt(pm.imBlockCount);
+						imCount++;
+console.log("im = " + imCount);
 						surface.context.fillStyle = "#444444";
-						sImmotalBlockCount++;
+						pm.imBlockCount = parseInt(imCount);
+console.log("im = " + pm.imBlockCount);
 						break;
 				}
 				context = surface.context;
@@ -476,22 +566,20 @@ window.onload = function(){
 
 				sprite.push(tmp_sprite);
 				var last_pos = sprite.length - 1; 
-				sBlockGroup.addChild(sprite[last_pos]);
+				pm.blkGr.addChild(sprite[last_pos]);
 			}
 		}
-		_scene.addChild(sBlockGroup);
+		_scene.addChild(pm.blkGr);
 
-		if(isYamochiMode == true){
-			sBlockGroup.addEventListener(Event.CHILD_REMOVED, function(e){
-				var tmp_block = sDestBlockArray.pop();
+		if(pm.yamochiMode == true){
+			pm.blkGr.addEventListener(Event.CHILD_REMOVED, function(e){
+				var tmp_block = pm.destBlkAr.pop();
 				var col = tmp_block.color;
 				var x = tmp_block.position.x;
 				var y = tmp_block.position.y;
 
-				if(isYamochiMode == true){
-					if(((col == "#0000ff") && (sBallArray.length < 5)) && (isBomberMode == false))
-						divideBall(_player, _scene, _world, x, y);
-				}
+				if(((col == "#0000ff") && (pm.ballAr.length < 5)) && (pm.bombMode == false))
+					divideBall(_player, _scene, _world, x, y);
 			});
 		}
 
@@ -617,6 +705,7 @@ window.onload = function(){
 	};
 
 	var gameStage = function (_stage){
+
 		var world = new PhysicsWorld( 0.0, 0.01 );
 		var scene = new Scene();
 		var pad = new Pad();
@@ -625,7 +714,7 @@ window.onload = function(){
 		var ball; 
 		var player;
 		var block;
-
+		var pm = Param.getInstance();
 
 		initialize_params();
 
@@ -633,11 +722,10 @@ window.onload = function(){
 
 		player = buildPlayerBlock(50, 12, pad, scene, world);
 		block = buildBlocks(scene, getBlockByStageNumber(_stage), 10, player, pad, world);
-		sBallArray = new Array(0);
 
 console.log("stage = " + _stage);
 
-		if(isYamochiMode == true){
+		if(pm.yamochiMode == true){
 			ball = buildBall(player, "red", 50/2); 
 		}
 		else{
@@ -649,7 +737,7 @@ console.log("stage = " + _stage);
 		ball.applyImpulse( new b2Vec2(0.3, 2.0) )
 
 		scene.addChild(ball);
-		sBallArray.push(ball);
+		pm.ballAr.push(ball);
 
 		setPlayerCallback(player, ball);
 		setBallCallback(ball, world);
@@ -659,18 +747,19 @@ console.log("stage = " + _stage);
 		scene.addChild(player);
 
 		scene.addEventListener(Event.ENTER_FRAME, function(e){
+			var pm = Param.getInstance();
 			var move_distance = player.position.x;
 			var input = game.input;
 			{
 				/* focus on ball */
-				for(var ii=0; ii<sBallArray.length; ii++){
-					var ball = sBallArray[ii];
-					var posX = sBallArray[ii].x;
-					var posY = sBallArray[ii].y;
+				for(var ii=0; ii<pm.ballAr.length; ii++){
+					var ball = pm.ballAr[ii];
+					var posX = pm.ballAr[ii].x;
+					var posY = pm.ballAr[ii].y;
 
 					var deadLine = (player.y + (player.height) + 5);
 					if(posY >= deadLine){
-						destroyBall(sBallArray, ball);
+						destroyBall(pm.ballAr, ball);
 					}
 
 					if(ball.isAwake == false){
@@ -689,19 +778,19 @@ console.log("stage = " + _stage);
 					else{
 						ball.contact(function(obj){
 							if(obj.kind == "player"){
-								if(upPower == true){
-									upPower = false;
-									downPower = false;
+								if(pm.upP == true){
+									pm.upP = false;
+									pm.downP = false;
 									ball.applyImpulse( new b2Vec2(0.0, -10.0) );
 									console.log("upPower");
 									ball.isAwake = true;
 								}
-								else if(downPower == true){
+								else if(pm.downP == true){
 									if(ball.y+ball.height <= player.y){
 										ball.y = player.y - ball.height;
 									}
-									upPower = false;
-									downPower = false;
+									pm.upP = false;
+									pm.downP = false;
 									console.log("downPower");
 									ball.isAwake = false;
 								}
@@ -728,7 +817,7 @@ console.log("stage = " + _stage);
 
 									ball.applyImpulse(new b2Vec2(zx, zy));
 								}
-								else if(isYamochiMode == true){
+								else if(pm.yamochiMode == true){
 									ball.applyImpulse(new b2Vec2(0.0, 2.0));
 								}
 								else {
@@ -745,49 +834,48 @@ console.log("stage = " + _stage);
 								}
 								
 								ball.setAwake(true);
-								if(isBomberMode == true){
+								if(pm.bombMode == true){
 									bomb(scene, ball.x, ball.y, block);
-									destroyBall(sBallArray, ball);
-									isBomberMode = false;
+									destroyBall(pm.ballAr, ball);
+									pm.bombMode = false;
 								}
 							}
 							else if(obj.kind == "ball"){
 //								obj.destroy();
 							}
 							else if(obj.kind == "bottom_wall"){
-								destroyBall(sBallArray, ball);
+								destroyBall(pm.ballAr, ball);
 							}
 						});
 					}
 				}
 
-				if(sBallArray.length <= 0){
+				if(pm.ballAr.length <= 0){
 					game.pushScene(gameoverScene(_stage));
 				}
 				else{
-					sWatchDogCount++;
-					if(sWatchDogCount >= WATCH_DOG_COUNT){
-						if((prevLength == 0) && (currentLength == 0)){
-							prevLength = sBallArray.length;
+					if(++(pm.watchdog) >= WATCH_DOG_COUNT){
+						if((pm.prevLen == 0) && (pm.currentLen == 0)){
+							pm.prevLen = pm.ballAr.length;
 						}
 						else {
-							currentLength = sBallArray.length;
-							if(prevLength == currentLength){
-								assertCount++;
-								if(assertCount > 3){
-									if(destroyBall(sBallArray) == true)
-										assertCount = 0;
+							pm.currentLen = pm.ballAr.length;
+							if(pm.prevLen == pm.currentLen){
+								pm.assertCnt++;
+								if(pm.assertCnt > 3){
+									if(destroyBall(pm.ballAr) == true)
+										pm.assertCnt = 0;
 								}
-								else if(assertCount > 50){
-									forceDestroyBall(sBallArray);
-									assertCount = 0;
+								else if(pm.assertCnt > 50){
+									forceDestroyBall(pm.ballAr);
+									pm.assertCnt = 0;
 								}
 							}
 						}
 					}
 				}
 				/* clear check => or rather, all blocks destruction is completed? */
-				var lastBlockLength = block.length - sImmotalBlockCount;
+				var lastBlockLength = block.length - parseInt(pm.imBlockCount);
 				if(lastBlockLength <= 0){
 					game.replaceScene(gameclearScene(_stage));
 				}
@@ -796,55 +884,55 @@ console.log("stage = " + _stage);
 			{
 				/* focus on player */
 				if (input.up)    {
-					upPower = true;
+					pm.upP = true;
 				}
 
 				if(input.g){
-					for(var ii=0; ii<sBallArray.length; ii++){
-						var ball = sBallArray[ii];
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
 						ball.applyImpulse(new b2Vec2(0.0, 5.0));
 					}
 				}
 
 				if(input.z){
-					for(var ii=0; ii<sBallArray.length; ii++){
-						var ball = sBallArray[ii];
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
 						ball.applyImpulse(new b2Vec2(0.0, -5.0));
 					}
 				}
 
 				if(input.r){
-					for(var ii=0; ii<sBallArray.length; ii++){
-						var ball = sBallArray[ii];
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
 						ball.applyImpulse(new b2Vec2(5.0, 0.0));
 					}
 				}
 
 				if(input.l){
-					for(var ii=0; ii<sBallArray.length; ii++){
-						var ball = sBallArray[ii];
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
 						ball.applyImpulse(new b2Vec2(-5.0, 0.0));
 					}
 				}
 
 				if(input.t){
-					for(var ii=0; ii<sBallArray.length; ii++){
-						var ball = sBallArray[ii];
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
 						ball.applyTorque(0.3);
 					}
 				}
 
 				if(input.s){
-					var lastBlockLength = block.length - sImmotalBlockCount;
+					var lastBlockLength = block.length - parseInt(pm.imBlockCount);
 					console.log("block length = " + block.length + " last = " + lastBlockLength);
 				}
 
 				if(input.b){
-					isBomberMode = true;
+					pm.bombMode = true;
 				}
 
 				if (input.down)  {
-					downPower = true;
+					pm.downP = true;
 				}
 	
 				if (input.left)  {
@@ -872,6 +960,7 @@ console.log("stage = " + _stage);
 
 	var titleScene = function (){
 		var scene = new Scene();
+		var pm = Param.getInstance();
 
 		var bgSprite = new Sprite(game.width, game.height);
 		var bgSurface = new Surface(game.width, game.height);
@@ -885,6 +974,7 @@ console.log("stage = " + _stage);
 		var yBtnX = 180;
 
 		initialize_params();
+		pm.yamochiMode = false;
 
 		context = bgSurface.context;
 		var grad = context.createLinearGradient(0, 0, bgSurface.width, bgSurface.height); 
@@ -915,12 +1005,12 @@ console.log("stage = " + _stage);
 		scene.addChild(yamochiButton);
 
         startButton.addEventListener(Event.TOUCH_END, function(){
-			isYamochiMode = false;
+			pm.yamochiMode = false;
 			game.replaceScene(gameStage(1));
         });
 
 		yamochiButton.addEventListener(Event.TOUCH_END, function(){
-			isYamochiMode = true;
+			pm.yamochiMode = true;
 			game.replaceScene(gameStage(1));
         });
 
