@@ -34,6 +34,9 @@ window.onload = function(){
 		pm.currentLen	= 0;
 		pm.assertCnt	= 0;
 		pm.watchdog		= 0;
+		pm.imWatchdog	= 0;
+		pm.vx_ratio		= 0;
+		pm.vy_ratio		= 0;
 		pm.upP			= false;
 		pm.downP		= false;
 		pm.bombMode		= false;
@@ -62,6 +65,9 @@ window.onload = function(){
 			var _currentLength = 0;
 			var _assertCount = 0;
 			var _watchDogCount = 0;
+			var _imWatchDogCount = 0;
+			var _vx_ratio = 0;
+			var _vy_ratio = 0;
 
     		return {
 				// public method
@@ -155,6 +161,30 @@ window.onload = function(){
         		    },
         		    set: function(cnt) {
 						this._watchDogCount = cnt;
+        		    }
+        		},
+        		imWatchdog: {
+        		    get: function() {
+        		        return this._imWatchDogCount;
+        		    },
+        		    set: function(cnt) {
+						this._imWatchDogCount = cnt;
+        		    }
+        		},
+        		vx_ratio: {
+        		    get: function() {
+        		        return this._vx_ratio;
+        		    },
+        		    set: function(cnt) {
+						this._vx_ratio = cnt;
+        		    }
+        		},
+        		vy_ratio: {
+        		    get: function() {
+        		        return this._vy_ratio;
+        		    },
+        		    set: function(cnt) {
+						this._vy_ratio = cnt;
         		    }
         		},
     		};
@@ -704,6 +734,211 @@ console.log("im = " + pm.imBlockCount);
 		return scene;
 	};
 
+	function controlBall(_player, _block, _scene, _stage,  _input){
+		var pm = Param.getInstance();
+		var move_distance = _player.position.x;
+   		for(var ii=0; ii<pm.ballAr.length; ii++){
+   			var _ball = pm.ballAr[ii];
+   			var posX = pm.ballAr[ii].x;
+   			var posY = pm.ballAr[ii].y;
+
+			if(Math.abs(_ball.vx) < 5.0){
+				if(_ball.vx > 0){
+					_ball.vx = 5.0;
+				}
+				else{
+					_ball.vx = -5.0;
+				}
+			}
+			if(Math.abs(_ball.vy) < 3.0){
+				if(_ball.vy > 0){
+					_ball.vy = 5.0;
+				}
+				else{
+					_ball.vy = -5.0;
+				}
+			}
+
+   			var deadLine = (_player.y + (_player.height) + 5);
+   			if(posY >= deadLine){
+   				destroyBall(pm.ballAr, _ball);
+   			}
+
+   			if(_ball.isAwake == false){
+   				move_distance -= _player.position.x;
+   				if (_input.up) {
+   					_ball.isAwake = true;
+   				}
+   				if(_input.left) {
+   					_ball.applyTorque(-1.0);
+   				}
+   				if(_input.right) {
+   					_ball.applyTorque(1.0);
+   				}
+   				_ball.setAwake(_ball.isAwake);
+   			}
+   			else{
+				for(var jj=0; jj<_block.length; jj++){
+					var blkSp = _block[jj];
+					if(_ball.within(blkSp, 35) == true){
+   						_ball.setAwake(false);
+   						destroyBlock(blkSp, _block);
+
+   						if(blkSp.color == "#444444"){
+   							var zx = _ball.position.x;
+   							var zy = _ball.vy + 1.2;
+   							var center = game.width / 2;
+
+							pm.imWatchdog++;
+
+   							if(zx > center){
+   								zx = _ball.vx - 4.0;
+   							}
+   							else { 
+   								zx = _ball.vx + 4.0;
+   							}
+
+							if(pm.imWatchdog >= 50){
+								zx *= 10;
+								pm.imWatchdog = 0;
+							}
+
+   							if(blkSp.y >= _ball.position.y){
+   								zy *= -1;
+   							}
+
+   							_ball.applyImpulse(new b2Vec2(zx, zy));
+   						}
+   						else if(pm.yamochiMode == true){
+   							_ball.applyImpulse(new b2Vec2(0.0, 2.0));
+   						}
+   						else {
+   							var zx = _ball.vx;
+   							var zy = _ball.vy - 2.0;
+   							if(zx > 0){
+   								zx += 1.0;
+   							}
+   							else {
+   								zx -= 1.0;
+   							}
+   							_ball.applyImpulse(new b2Vec2(zx, zy));
+   							_ball.applyTorque(zx);
+   						}
+   						
+   						_ball.setAwake(true);
+   						if(pm.bombMode == true){
+   							bomb(_scene, _ball.x, _ball.y, _block);
+   							destroyBall(pm.ballAr, _ball);
+   							pm.bombMode = false;
+   						}
+					}
+				}
+
+   				_ball.contact(function(obj){
+   					if(obj.kind == "block") {
+   						_ball.setAwake(false);
+   						destroyBlock(obj, _block);
+
+   						if(obj.color == "#444444"){
+   							var zx = _ball.position.x;
+   							var zy = _ball.vy + 1.2;
+   							var center = game.width / 2;
+   							if(zx > center){
+   								zx = _ball.vx - 1.2;
+   							}
+   							else { 
+   								zx = _ball.vx + 1.2;
+   							}
+
+   							if(obj.y >= _ball.position.y){
+   								zy *= -1;
+   							}
+
+   							_ball.applyImpulse(new b2Vec2(zx, zy));
+   						}
+   						else if(pm.yamochiMode == true){
+   							_ball.applyImpulse(new b2Vec2(0.0, 2.0));
+   						}
+   						else {
+   							var zx = _ball.vx;
+   							var zy = _ball.vy - 2.0;
+   							if(zx > 0){
+   								zx += 1.0;
+   							}
+   							else {
+   								zx -= 1.0;
+   							}
+   							_ball.applyImpulse(new b2Vec2(zx, zy));
+   							_ball.applyTorque(zx);
+   						}
+   						
+   						_ball.setAwake(true);
+   						if(pm.bombMode == true){
+   							bomb(_scene, _ball.x, _ball.y, _block);
+   							destroyBall(pm.ballAr, _ball);
+   							pm.bombMode = false;
+   						}
+   					}
+					else if(obj.kind == "player"){
+   						if(pm.upP == true){
+   							pm.upP = false;
+   							pm.downP = false;
+   							_ball.applyImpulse( new b2Vec2(0.0, -10.0) );
+   							console.log("upPower");
+   							_ball.isAwake = true;
+   						}
+   						else if(pm.downP == true){
+   							if(_ball.y + _ball.height <= _player.y){
+   								_ball.y = _player.y - _ball.height;
+   							}
+   							pm.upP = false;
+   							pm.downP = false;
+   							console.log("downPower");
+   							_ball.isAwake = false;
+   						}
+   						_ball.setAwake(_ball.isAwake);
+   					}
+   					else if(obj.kind == "ball"){
+//   						obj.destroy();
+   					}
+   					else if(obj.kind == "bottom_wall"){
+   						destroyBall(pm.ballAr, _ball);
+   					}
+   				});
+   			}
+   		}
+
+   		if(pm.ballAr.length <= 0){
+   			game.pushScene(gameoverScene(_stage));
+   		}
+   		else{
+   			if(++(pm.watchdog) >= WATCH_DOG_COUNT){
+   				if((pm.prevLen == 0) && (pm.currentLen == 0)){
+   					pm.prevLen = pm.ballAr.length;
+   				}
+   				else {
+   					pm.currentLen = pm.ballAr.length;
+   					if(pm.prevLen == pm.currentLen){
+   						pm.assertCnt++;
+   						if(pm.assertCnt > 3){
+   							if(destroyBall(pm.ballAr) == true)
+   								pm.assertCnt = 0;
+   						}
+   						else if(pm.assertCnt > 50){
+   							forceDestroyBall(pm.ballAr);
+   							pm.assertCnt = 0;
+   						}
+   					}
+   				}
+   			}
+   		}
+   		/* clear check => or rather, all blocks destruction is completed? */
+   		var lastBlockLength = _block.length - parseInt(pm.imBlockCount);
+   		if(lastBlockLength <= 0){
+   			game.replaceScene(gameclearScene(_stage));
+   		}
+	}
+
 	var gameStage = function (_stage){
 
 		var world = new PhysicsWorld( 0.0, 0.01 );
@@ -748,138 +983,9 @@ console.log("stage = " + _stage);
 
 		scene.addEventListener(Event.ENTER_FRAME, function(e){
 			var pm = Param.getInstance();
-			var move_distance = player.position.x;
 			var input = game.input;
-			{
-				/* focus on ball */
-				for(var ii=0; ii<pm.ballAr.length; ii++){
-					var ball = pm.ballAr[ii];
-					var posX = pm.ballAr[ii].x;
-					var posY = pm.ballAr[ii].y;
 
-					var deadLine = (player.y + (player.height) + 5);
-					if(posY >= deadLine){
-						destroyBall(pm.ballAr, ball);
-					}
-
-					if(ball.isAwake == false){
-						move_distance -= player.position.x;
-						if (input.up) {
-							ball.isAwake = true;
-						}
-						if(input.left) {
-							ball.applyTorque(-1.0);
-						}
-						if(input.right) {
-							ball.applyTorque(1.0);
-						}
-						ball.setAwake(ball.isAwake);
-					}
-					else{
-						ball.contact(function(obj){
-							if(obj.kind == "player"){
-								if(pm.upP == true){
-									pm.upP = false;
-									pm.downP = false;
-									ball.applyImpulse( new b2Vec2(0.0, -10.0) );
-									console.log("upPower");
-									ball.isAwake = true;
-								}
-								else if(pm.downP == true){
-									if(ball.y+ball.height <= player.y){
-										ball.y = player.y - ball.height;
-									}
-									pm.upP = false;
-									pm.downP = false;
-									console.log("downPower");
-									ball.isAwake = false;
-								}
-								ball.setAwake(ball.isAwake);
-							}
-							else if(obj.kind == "block") {
-								ball.setAwake(false);
-								destroyBlock(obj, block);
-
-								if(obj.color == "#444444"){
-									var zx = ball.position.x;
-									var zy = ball.vy + 1.2;
-									var center = game.width / 2;
-									if(zx > center){
-										zx = ball.vx - 1.2;
-									}
-									else { 
-										zx = ball.vx + 1.2;
-									}
-
-									if(obj.y >= ball.position.y){
-										zy *= -1;
-									}
-
-									ball.applyImpulse(new b2Vec2(zx, zy));
-								}
-								else if(pm.yamochiMode == true){
-									ball.applyImpulse(new b2Vec2(0.0, 2.0));
-								}
-								else {
-									var zx = ball.vx;
-									var zy = ball.vy - 2.0;
-									if(zx > 0){
-										zx += 1.0;
-									}
-									else {
-										zx -= 1.0;
-									}
-									ball.applyImpulse(new b2Vec2(zx, zy));
-									ball.applyTorque(zx);
-								}
-								
-								ball.setAwake(true);
-								if(pm.bombMode == true){
-									bomb(scene, ball.x, ball.y, block);
-									destroyBall(pm.ballAr, ball);
-									pm.bombMode = false;
-								}
-							}
-							else if(obj.kind == "ball"){
-//								obj.destroy();
-							}
-							else if(obj.kind == "bottom_wall"){
-								destroyBall(pm.ballAr, ball);
-							}
-						});
-					}
-				}
-
-				if(pm.ballAr.length <= 0){
-					game.pushScene(gameoverScene(_stage));
-				}
-				else{
-					if(++(pm.watchdog) >= WATCH_DOG_COUNT){
-						if((pm.prevLen == 0) && (pm.currentLen == 0)){
-							pm.prevLen = pm.ballAr.length;
-						}
-						else {
-							pm.currentLen = pm.ballAr.length;
-							if(pm.prevLen == pm.currentLen){
-								pm.assertCnt++;
-								if(pm.assertCnt > 3){
-									if(destroyBall(pm.ballAr) == true)
-										pm.assertCnt = 0;
-								}
-								else if(pm.assertCnt > 50){
-									forceDestroyBall(pm.ballAr);
-									pm.assertCnt = 0;
-								}
-							}
-						}
-					}
-				}
-				/* clear check => or rather, all blocks destruction is completed? */
-				var lastBlockLength = block.length - parseInt(pm.imBlockCount);
-				if(lastBlockLength <= 0){
-					game.replaceScene(gameclearScene(_stage));
-				}
-			}
+			controlBall(player, block, scene, _stage, input);
 
 			{
 				/* focus on player */
@@ -925,6 +1031,12 @@ console.log("stage = " + _stage);
 				if(input.s){
 					var lastBlockLength = block.length - parseInt(pm.imBlockCount);
 					console.log("block length = " + block.length + " last = " + lastBlockLength);
+
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var ball = pm.ballAr[ii];
+						console.log("angle = " + ball.angle + " angularVelocity = " + ball.angularVelocity);
+						console.log("velocity = " + ball.velocity + " vx = " + ball.vx + " vy = " + ball.vy);
+					}
 				}
 
 				if(input.b){
