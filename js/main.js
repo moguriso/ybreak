@@ -29,8 +29,9 @@ window.onload = function(){
 	var sWatchDogCount = 0;
 
     game.fps = 60;
+	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
 	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
-				 'image/bomb_1.png', 'image/3ca.png', 'image/ytitle.png');
+				 'image/bomb_1.png', 'image/3ca.png', 'image/title_true.png', 'image/p_ligo.png');
 	game.keybind( 71, 'g' );
 	game.keybind( 84, 't' );
 	game.keybind( 90, 'z' );
@@ -68,7 +69,6 @@ window.onload = function(){
 
 			// private member sample
 			var _random = 0;
-        	var bgSprite = new Sprite(game.width, game.height);
 
     		return {
 				// public method
@@ -143,9 +143,11 @@ window.onload = function(){
 		var top_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
 		var bottom_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
 
-		surface1.context.fillStyle = "green";
+		surface1.context.fillStyle = "white";
+		surface1.context.globalAlpha = 0;
 		surface1.context.fillRect(0, 0, surface1.width, surface1.height);
-		surface2.context.fillStyle = "green";
+		surface2.context.fillStyle = "white";
+		surface2.context.globalAlpha = 0;
 		surface2.context.fillRect(0, 0, surface2.width, surface2.height);
 
 		left_sprite.image = surface1;
@@ -158,7 +160,7 @@ window.onload = function(){
 		top_sprite.position = { x : 0, y : 0 };
 		top_sprite.kind = "top_wall";
 		bottom_sprite.image = surface2;
-		bottom_sprite.position = { x : 0, y : (_player.y + (_player.height*3)) };
+		bottom_sprite.position = { x : 0, y : (_player.y + (_player.height*5)) };
 		bottom_sprite.kind = "bottom_wall";
 
 		_scene.addChild(left_sprite);
@@ -169,12 +171,32 @@ window.onload = function(){
 
 	function buildPlayerBlock(_width, _height, _pad, _world){
 		var surface = new Surface( _width, _height);
+		var context;
 		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 20.0, 0.5, true);
 		var s_x = Math.floor(game.width/2) - Math.floor(surface.width/2);
 		var s_y = Math.floor(game.height) - Math.floor(surface.height) - _pad.height;
 
 		surface.context.fillStyle = "green";
 		surface.context.fillRect(0, 0, surface.width, surface.height);
+		context = surface.context;
+
+		context.beginPath();
+		context.strokeStyle = "white";
+		context.moveTo(0,0);
+		context.lineTo(surface.width, 0);
+		context.moveTo(0,0);
+		context.lineTo(0, surface.height);
+		context.closePath();
+		context.stroke();
+
+		context.beginPath();
+		context.strokeStyle = "#444444";
+		context.moveTo(0, surface.height);
+		context.lineTo(surface.width, surface.height);
+		context.moveTo(surface.width, 0);
+		context.lineTo(surface.width, surface.height);
+		context.closePath();
+		context.stroke();
 
 		sprite.image = surface;
 		sprite.position = { x : s_x, y : s_y };
@@ -224,7 +246,7 @@ window.onload = function(){
 		for(ii=0; ii<_block.length; ii++){
 			var tmp_block = _block[ii];
 			if(_target == tmp_block){
-				if(tmp_block.color != "#000000"){
+				if(tmp_block.color != "#444444"){
 					sDestBlockArray.push(tmp_block);
 					_block.splice(ii, 1);
 					tmp_block.destroy();
@@ -369,8 +391,8 @@ window.onload = function(){
 						 9, 2, 9, 9, 3, 3, 9, 9, 2, 9 ];
 
 	var sBlockStage4 = [ 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 9, 9, 2, 1, 9, 9, 1, 2, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
-						 9, 9, 9, 9, 1, 1, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 3, 3, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
@@ -382,6 +404,7 @@ window.onload = function(){
 		var s_h = 10;
 		var term_line = 10*10;
 		var surface;
+		var context;
 		var sprite = new Array();
 		var ii, jj, cnt;
 		var s_x, s_y;
@@ -418,11 +441,30 @@ window.onload = function(){
 						surface.context.fillStyle = "yellow";
 						break;
 					case 3:
-						surface.context.fillStyle = "black";
+						surface.context.fillStyle = "#444444";
 						sImmotalBlockCount++;
 						break;
 				}
+				context = surface.context;
 				surface.context.fillRect(0, 0, surface.width, surface.height);
+
+				context.beginPath();
+				context.strokeStyle = "white";
+				context.moveTo(0,0);
+				context.lineTo(surface.width, 0);
+				context.moveTo(0,0);
+				context.lineTo(0, surface.height);
+				context.closePath();
+				context.stroke();
+
+				context.beginPath();
+				context.strokeStyle = "#444444";
+				context.moveTo(0, surface.height);
+				context.lineTo(surface.width, surface.height);
+				context.moveTo(surface.width, 0);
+				context.lineTo(surface.width, surface.height);
+				context.closePath();
+				context.stroke();
 
 				tmp_sprite  = new PhyBoxSprite( s_w, s_h,
 												enchant.box2d.STATIC_SPRITE,
@@ -519,6 +561,26 @@ window.onload = function(){
 		return scene;
 	};
 
+	function setBackGround(_scene, _stage){
+       	var bgSprite = new Sprite(game.width, game.height);
+		switch(_stage){
+			case 4:
+    			bgSprite.image = game.assets['image/SUN000E.jpg'];
+				break;
+			case 3:
+    			bgSprite.image = game.assets['image/galaxy000.jpg'];
+				break;
+			case 2:
+    			bgSprite.image = game.assets['image/planet_01.jpg'];
+				break;
+			case 1:
+			default:
+    			bgSprite.image = game.assets['image/planet_01.jpg'];
+				break;
+		}
+		_scene.addChild(bgSprite);
+	}
+
 	var gameoverScene = function(_stage_number) {
 		var scene = new Scene();
 		var screen_x = game.width;
@@ -564,9 +626,12 @@ window.onload = function(){
 		var player;
 		var block;
 
+
 		initialize_params();
 
-		player = buildPlayerBlock(100, 12, pad, scene, world);
+		setBackGround(scene, _stage);
+
+		player = buildPlayerBlock(50, 12, pad, scene, world);
 		block = buildBlocks(scene, getBlockByStageNumber(_stage), 10, player, pad, world);
 		sBallArray = new Array(0);
 
@@ -646,7 +711,7 @@ console.log("stage = " + _stage);
 								ball.setAwake(false);
 								destroyBlock(obj, block);
 
-								if(obj.color == "#000000"){
+								if(obj.color == "#444444"){
 									var zx = ball.position.x;
 									var zy = ball.vy + 1.2;
 									var center = game.width / 2;
@@ -808,16 +873,43 @@ console.log("stage = " + _stage);
 	var titleScene = function (){
 		var scene = new Scene();
 
-		var titleSprite = new Sprite(252, 320);
-		var startButton = new Button("START", "light");
-		var yamochiButton = new Button("Yamochi", "light");
+		var bgSprite = new Sprite(game.width, game.height);
+		var bgSurface = new Surface(game.width, game.height);
+		var context;
+		var logoSprite = new Sprite(116, 80);
+		var titleSprite = new Sprite(320, 32);
+		var startButton = new Button("START", "light", 20, 50);
+		var yamochiButton = new Button("Yamochi", "light", 20, 50);
+		var titlePosY = Math.floor(game.height/2-titleSprite.height-80);
+		var sBtnX = 60;
+		var yBtnX = 180;
 
 		initialize_params();
-    	titleSprite.image = game.assets['image/ytitle.png'];
 
-		startButton.moveTo(50, 230);
-		yamochiButton.moveTo(130, 230);
+		context = bgSurface.context;
+		var grad = context.createLinearGradient(0, 0, bgSurface.width, bgSurface.height); 
 
+		grad.addColorStop(0.0, "rgb(0, 0, 0)");
+		grad.addColorStop(0.5, "rgb(255, 255, 255)");
+
+		bgSurface.context.fillStyle = grad;
+		bgSurface.context.fillRect(0,0,bgSurface.width, bgSurface.height);
+		bgSprite.image = bgSurface;
+
+    	titleSprite.image = game.assets['image/title_true.png'];
+		titleSprite.moveTo(0, titlePosY);
+
+    	logoSprite.image = game.assets['image/p_ligo.png'];
+		logoSprite.moveTo(200, 220);
+		logoSprite.tl.scaleTo(0.4, 1, enchant.Easing.LINEAR);
+
+		startButton.moveTo(sBtnX, 160);
+		startButton._style.zIndex = 1;
+		yamochiButton.moveTo(yBtnX, 160);
+		yamochiButton._style.zIndex = 2;
+
+		scene.addChild(bgSprite);
+		scene.addChild(logoSprite);
 		scene.addChild(titleSprite);
 		scene.addChild(startButton);
 		scene.addChild(yamochiButton);
