@@ -11,8 +11,8 @@ window.onload = function(){
 
     game.fps = 30;
 	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
-	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png',
-				 'image/bomb_1.png', 'image/3ca.png', 'image/title_true.png', 'image/p_ligo.png');
+	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png', 'image/bomb_1.png',
+				 'image/3ca.png', 'image/title_true.png', 'image/p_ligo.png', 'image/rainbow.png');
 	game.keybind( 71, 'g' );
 	game.keybind( 84, 't' );
 	game.keybind( 90, 'z' );
@@ -20,6 +20,7 @@ window.onload = function(){
 	game.keybind( 82, 'r' );
 	game.keybind( 76, 'l' );
 	game.keybind( 83, 's' );
+	game.keybind( 65, 'a' );
 
 	function initialize_params(){
 		var pm = Param.getInstance();
@@ -74,6 +75,32 @@ window.onload = function(){
     			getRandomPos : function(_ratio) {
 					_random = Math.floor(Math.random()*_ratio);
     		   		return _random;
+    		  	},
+    			getVxRatio : function(zx) {
+					var r_val = 0;
+					var ent_val = parseInt(_vx_ratio);
+					ent_val = ent_val + 0.5;
+					_vx_ratio = ent_val;
+					if(zx > 0){
+						r_val = zx + _vx_ratio;
+					}
+					else{
+						r_val = zx - _vx_ratio;
+					}
+    		   		return r_val;
+    		  	},
+    			getVyRatio : function(zy) {
+					var r_val = 0;
+					var ent_val = parseInt(_vy_ratio);
+					ent_val = ent_val + 0.5;
+					_vy_ratio = ent_val;
+					if(zy > 0){
+						r_val = zy + _vy_ratio;
+					}
+					else{
+						r_val = zy - _vy_ratio;
+					}
+    		   		return r_val;
     		  	},
 				// public member
         		imBlockCount : {
@@ -224,6 +251,29 @@ window.onload = function(){
 		destroyBall(_ball, true);
 	}
 
+	function rainbow(_scene, _x, _y){
+		var rainbow = new Sprite(256, 256);
+		var mx = _x - (rainbow.width/4)  - 5;
+		var my = _y - (rainbow.height/4) - 35;
+
+    	rainbow.image = game.assets['image/rainbow.png'];
+    	rainbow.frame = 0;
+		rainbow.moveTo(mx, my);
+		rainbow.kind = "rainbow"; /* probably need not to use */
+
+		rainbow.tl.scaleTo(0.5, 1, enchant.Easing.LINEAR)
+				  .repeat(function(){
+						rainbow.frame++;
+				   }, 19)
+				  .then(function(){
+						rainbow.frame = 0;
+				   })
+				  .scaleTo(1.0, 1, enchant.Easing.LINEAR)
+				  .loop();
+
+		_scene.addChild(rainbow);
+	}
+
 	function bomb(_scene, _x, _y, _block){
 		var bomb = new PhyBoxSprite( 256, 256, enchant.box2d.STATIC_SPRITE, 1000.0, 1000.0, 1000.0, true);
 
@@ -234,7 +284,7 @@ window.onload = function(){
 
 		bomb.tl.repeat(function(){
 			bomb.frame++;
-		}, 14).and().scaleTo(2.2, 30, enchant.Easing.LINEAR).
+		}, 15).and().scaleTo(2.2, 30, enchant.Easing.LINEAR).
 		and().then(function(){
 			destroyBlockXY(_x, _y, _block);
 		}).
@@ -506,11 +556,11 @@ window.onload = function(){
 						 9, 2, 9, 9, 3, 3, 9, 9, 2, 9 ];
 
 	var sBlockStage4 = [ 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
-						 9, 9, 2, 1, 9, 9, 1, 2, 9, 9, 
+						 9, 9, 0, 1, 9, 9, 1, 0, 9, 9, 
+						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 3, 3, 9, 9, 9, 9, 
-						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 2, 9, 9, 9, 9, 9, 9, 2, 9 ];
 
@@ -559,10 +609,8 @@ window.onload = function(){
 					case 3:
 						var imCount = parseInt(pm.imBlockCount);
 						imCount++;
-console.log("im = " + imCount);
 						surface.context.fillStyle = "#444444";
 						pm.imBlockCount = parseInt(imCount);
-console.log("im = " + pm.imBlockCount);
 						break;
 				}
 				context = surface.context;
@@ -657,6 +705,7 @@ console.log("im = " + pm.imBlockCount);
 
         retryButton.addEventListener(Event.TOUCH_END, function(){
 			var current_stage = _stage_number;
+			game.popScene();
 			game.replaceScene(gameStage(current_stage));
         });
 
@@ -665,6 +714,7 @@ console.log("im = " + pm.imBlockCount);
 
         nextButton.addEventListener(Event.TOUCH_END, function(){
 			var next_stage = _stage_number+1;
+			game.popScene();
 			game.replaceScene(gameStage(next_stage));
         });
 
@@ -750,7 +800,7 @@ console.log("im = " + pm.imBlockCount);
 					_ball.vx = -5.0;
 				}
 			}
-			if(Math.abs(_ball.vy) < 3.0){
+			if(Math.abs(_ball.vy) < 5.0){
 				if(_ball.vy > 0){
 					_ball.vy = 5.0;
 				}
@@ -769,12 +819,6 @@ console.log("im = " + pm.imBlockCount);
    				if (_input.up) {
    					_ball.isAwake = true;
    				}
-   				if(_input.left) {
-   					_ball.applyTorque(-1.0);
-   				}
-   				if(_input.right) {
-   					_ball.applyTorque(1.0);
-   				}
    				_ball.setAwake(_ball.isAwake);
    			}
    			else{
@@ -789,16 +833,14 @@ console.log("im = " + pm.imBlockCount);
    							var zy = _ball.vy + 1.2;
    							var center = game.width / 2;
 
-							pm.imWatchdog++;
+							if(zx < center){
+								zx = _ball.vx - 4.0;
+							}
+							else{
+								zx = _ball.vx + 4.0;
+							}
 
-   							if(zx > center){
-   								zx = _ball.vx - 4.0;
-   							}
-   							else { 
-   								zx = _ball.vx + 4.0;
-   							}
-
-							if(pm.imWatchdog >= 50){
+							if(++(pm.imWatchdog) >= 50){
 								zx *= 10;
 								pm.imWatchdog = 0;
 							}
@@ -807,6 +849,8 @@ console.log("im = " + pm.imBlockCount);
    								zy *= -1;
    							}
 
+							zx = pm.getVxRatio(zx);
+							zy = pm.getVyRatio(zy);
    							_ball.applyImpulse(new b2Vec2(zx, zy));
    						}
    						else if(pm.yamochiMode == true){
@@ -821,6 +865,8 @@ console.log("im = " + pm.imBlockCount);
    							else {
    								zx -= 1.0;
    							}
+							zx = pm.getVxRatio(zx);
+							zy = pm.getVyRatio(zy);
    							_ball.applyImpulse(new b2Vec2(zx, zy));
    							_ball.applyTorque(zx);
    						}
@@ -854,6 +900,8 @@ console.log("im = " + pm.imBlockCount);
    								zy *= -1;
    							}
 
+							zx = pm.getVxRatio(zx);
+							zy = pm.getVyRatio(zy);
    							_ball.applyImpulse(new b2Vec2(zx, zy));
    						}
    						else if(pm.yamochiMode == true){
@@ -868,6 +916,8 @@ console.log("im = " + pm.imBlockCount);
    							else {
    								zx -= 1.0;
    							}
+							zx = pm.getVxRatio(zx);
+							zy = pm.getVyRatio(zy);
    							_ball.applyImpulse(new b2Vec2(zx, zy));
    							_ball.applyTorque(zx);
    						}
@@ -935,7 +985,8 @@ console.log("im = " + pm.imBlockCount);
    		/* clear check => or rather, all blocks destruction is completed? */
    		var lastBlockLength = _block.length - parseInt(pm.imBlockCount);
    		if(lastBlockLength <= 0){
-   			game.replaceScene(gameclearScene(_stage));
+   			game.pushScene(gameclearScene(_stage));
+   			//game.replaceScene(gameclearScene(_stage));
    		}
 	}
 
@@ -1048,10 +1099,10 @@ console.log("stage = " + _stage);
 				}
 	
 				if (input.left)  {
-					player.x -= 8;
+					player.x -= 12;
 				}
 				if (input.right) {
-					player.x += 8;
+					player.x += 12;
 				}
 	
 				if(player.x <= 0) {
@@ -1069,6 +1120,10 @@ console.log("stage = " + _stage);
 
 		return scene;
 	};
+
+	var isCheckKonami = false;
+	var konamiArray;
+	var currentStr = undefined;
 
 	var titleScene = function (){
 		var scene = new Scene();
@@ -1108,13 +1163,70 @@ console.log("stage = " + _stage);
 		startButton.moveTo(sBtnX, 160);
 		startButton._style.zIndex = 1;
 		yamochiButton.moveTo(yBtnX, 160);
-		yamochiButton._style.zIndex = 2;
+		yamochiButton._style.zIndex = 1;
 
 		scene.addChild(bgSprite);
-		scene.addChild(logoSprite);
 		scene.addChild(titleSprite);
+		rainbow(scene, logoSprite.x, logoSprite.y);
+		scene.addChild(logoSprite);
+
 		scene.addChild(startButton);
 		scene.addChild(yamochiButton);
+		yamochiButton.visible = false;
+
+		konamiArray = new Array();
+		konamiArray.push("u", "u", "d", "d", "l", "r", "l", "r", "b", "a");
+		konamiArray.reverse();
+		titleSprite.addEventListener(Event.TOUCH_START, function(){
+			isCheckKonami = true;
+		});
+		titleSprite.addEventListener(Event.ENTER_FRAME, function(){
+			if(isCheckKonami == true){
+				var input = game.input;
+				var enter = "";
+				var isUnlock = false;
+
+				if(input.a){
+					enter = "a";
+				}
+				if(input.b){
+					enter = "b";
+				}
+				if(input.up){
+					enter = "u";
+				}
+				if(input.down){
+					enter = "d";
+				}
+				if(input.left){
+					enter = "l";
+				}
+				if(input.right){
+					enter = "r";
+				}
+
+				if(currentStr == undefined){
+					currentStr = konamiArray.pop();
+					console.log("");
+				}
+				else{
+					if(currentStr == enter){
+						console.log("enter = " + enter);
+						if(konamiArray.length > 0){
+							currentStr = konamiArray.pop();
+							console.log("next= " + currentStr);
+						}
+						else if(konamiArray.length == 0){
+							yamochiButton.visible = true;
+							console.log("unlocked");
+						}
+					}
+				}
+			}
+		});
+		titleSprite.addEventListener(Event.TOUCH_END, function(){
+			isCheckKonami = false;
+		});
 
         startButton.addEventListener(Event.TOUCH_END, function(){
 			pm.yamochiMode = false;
@@ -1125,6 +1237,10 @@ console.log("stage = " + _stage);
 			pm.yamochiMode = true;
 			game.replaceScene(gameStage(1));
         });
+
+		logoSprite.addEventListener(Event.TOUCH_END, function(){
+			document.location = "http://www.3ca.co.jp/";
+		});
 
 		return scene;
 	};
