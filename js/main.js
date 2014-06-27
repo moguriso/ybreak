@@ -564,6 +564,24 @@ window.onload = function(){
 						 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
 						 9, 2, 9, 9, 9, 9, 9, 9, 2, 9 ];
 
+	var sBlockStage5 = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+						 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 
+						 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+						 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 
+						 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 
+						 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 
+						 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+						 3, 2, 2, 2, 2, 2, 2, 2, 2, 3 ];
+
+	var sBlockStage6 = [ 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 
+						 1, 1, 1, 9, 9, 9, 9, 1, 1, 1, 
+						 0, 9, 0, 0, 0, 0, 0, 0, 9, 0, 
+						 9, 9, 9, 9, 2, 2, 9, 9, 9, 9, 
+						 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+						 3, 9, 9, 9, 9, 9, 9, 9, 9, 3, 
+						 9, 9, 3, 9, 2, 2, 9, 3, 9, 9, 
+						 2, 9, 9, 9, 2, 2, 9, 9, 9, 2 ];
+
 	function buildBlocks(_scene, _blk_array, _lines, _player, _pad, _world){
 		var s_w = 30;
 		var s_h = 10;
@@ -668,6 +686,12 @@ window.onload = function(){
 		var retBlocks;
 		console.log("num = " + _num);
 		switch(_num){
+			case 6:
+				retBlocks = sBlockStage6;
+				break;
+			case 5:
+				retBlocks = sBlockStage5;
+				break;
 			case 4:
 				retBlocks = sBlockStage4;
 				break;
@@ -732,10 +756,10 @@ window.onload = function(){
 	function setBackGround(_scene, _stage){
        	var bgSprite = new Sprite(game.width, game.height);
 		switch(_stage){
-			case 4:
+			case 6: case 4:
     			bgSprite.image = game.assets['image/SUN000E.jpg'];
 				break;
-			case 3:
+			case 5: case 3:
     			bgSprite.image = game.assets['image/galaxy000.jpg'];
 				break;
 			case 2:
@@ -824,7 +848,11 @@ window.onload = function(){
    			else{
 				for(var jj=0; jj<_block.length; jj++){
 					var blkSp = _block[jj];
-					if(_ball.within(blkSp, 35) == true){
+					var touch_ratio = 35;
+
+					if(blkSp.color == "#444444") touch_ratio = 25;
+
+					if(_ball.within(blkSp, touch_ratio) == true){
    						_ball.setAwake(false);
    						destroyBlock(blkSp, _block);
 
@@ -840,7 +868,7 @@ window.onload = function(){
 								zx = _ball.vx + 4.0;
 							}
 
-							if(++(pm.imWatchdog) >= 50){
+							if(++(pm.imWatchdog) >= 20){
 								zx *= 10;
 								pm.imWatchdog = 0;
 							}
@@ -899,6 +927,11 @@ window.onload = function(){
    							if(obj.y >= _ball.position.y){
    								zy *= -1;
    							}
+
+							if(++(pm.imWatchdog) >= 20){
+								zx *= 10;
+								pm.imWatchdog = 0;
+							}
 
 							zx = pm.getVxRatio(zx);
 							zy = pm.getVyRatio(zy);
