@@ -442,7 +442,14 @@ window.onload = function(){
 
 	function buildSquare(_player, _color, _width, _height, _x, _y){
 		var surface = new Surface( _width, _height);
-		var sprite = new PhyBoxSprite( surface.width, surface.height, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.0, 0.0, true);
+		var sprite = new PhyBoxSprite( surface.width,
+									   surface.height,
+									   enchant.box2d.DYNAMIC_SPRITE,
+									   2.5, // [density] Spriteの密度
+									   0.0, // [friction] Spriteの摩擦.
+									   0.0, // [restitution] Spriteの反発.
+									   true
+									 );
 		var s_x;
 		var s_y;
 
@@ -979,6 +986,24 @@ window.onload = function(){
    							console.log("downPower");
    							_ball.isAwake = false;
    						}
+						else{
+							var zx = Math.abs(_ball.vx) / 10;
+							var zy = _ball.vy;
+							var border_x = Math.floor(game.width/2);
+							var center_x = Math.floor(obj.x/2);
+
+							if(border_x >= center_x){
+								zx = Math.abs(zx) * -1.0;
+							}
+							console.log("vx = " + _ball.vx + " invert zx = " + zx);
+
+							if(zy > 0){
+								zy = Math.abs(zy / 10) * -1.0;
+								if(zy < -10.0) zy = -5.0;
+								console.log("vy = " + _ball.vy + " invert zy = " + zy);
+							}
+   							_ball.applyImpulse( new b2Vec2(zx, zy) );
+						}
    						_ball.setAwake(_ball.isAwake);
    					}
    					else if(obj.kind == "ball"){
@@ -1048,7 +1073,7 @@ console.log("stage = " + _stage);
 			ball = buildBall(player, "red", 50/2); 
 		}
 		else{
-			ball = buildSquare(player, "red", 43, 23); 
+			ball = buildSquare(player, "red", 22, 12); 
 		}
 
 		ball.isAwake = true;
