@@ -232,10 +232,10 @@ window.onload = function(){
 		for(var ii=0; ii<_ballArray.length; ii++){
 			if((_isForceDestroy == true) ||
 			   (_obj == _ballArray[ii])  ||
-			   ((_ballArray[ii].position.x > game.width) ||
-			    (_ballArray[ii].position.x < 0)		  	 ||
-			    (_ballArray[ii].position.y > game.height)||
-			    (_ballArray[ii].position.y < 0)))
+			   ((_ballArray[ii].x > game.width) ||
+			    (_ballArray[ii].x < 0)		  	 ||
+			    (_ballArray[ii].y > game.height)||
+			    (_ballArray[ii].y < 0)))
 			{
 				if(_ballArray[ii].destroy != undefined){
 					_ballArray[ii].destroy();
@@ -275,11 +275,11 @@ window.onload = function(){
 	}
 
 	function bomb(_scene, _x, _y, _block){
-		var bomb = new PhyBoxSprite( 256, 256, enchant.box2d.STATIC_SPRITE, 1000.0, 1000.0, 1000.0, true);
+		var bomb = new Sprite(256, 256);
 
     	bomb.image = game.assets['image/bomb_1.png'];
     	bomb.frame = 0;
-		bomb.position = { x: _x, y : _y };
+		bomb.moveTo(_x, _y);
 		bomb.kind = "bomb";
 
 		bomb.tl.repeat(function(){
@@ -297,13 +297,13 @@ window.onload = function(){
 		//destroyBlockXY(_x, _y, _block);
 	}
 
-	function buildWall(_player, _scene, _world){
-		var surface1	= new Surface( 1, game.height*2);
-		var surface2	= new Surface( game.width*2, 1);
-		var left_sprite = new PhyBoxSprite( 1, game.height*2, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
-		var right_sprite = new PhyBoxSprite( 1, game.height*2, enchant.box2d.STATIC_SPRITE, 1.0, 0.3, 1.0, true);
-		var top_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
-		var bottom_sprite = new PhyBoxSprite( game.width*2, 1, enchant.box2d.STATIC_SPRITE, 1.0, 0.0, 3.0, true);
+	function buildWall(_player, _scene){
+		var surface1	= new Surface(1, game.height*2);
+		var surface2	= new Surface(game.width*2, 1);
+		var left_sprite = new Sprite(1, game.height*2);
+		var right_sprite = new Sprite(1, game.height*2);
+		var top_sprite = new Sprite(game.width*2, 1);
+		var bottom_sprite = new Sprite(game.width*2, 1);
 
 		surface1.context.fillStyle = "white";
 		surface1.context.globalAlpha = 0;
@@ -313,16 +313,16 @@ window.onload = function(){
 		surface2.context.fillRect(0, 0, surface2.width, surface2.height);
 
 		left_sprite.image = surface1;
-		left_sprite.position = { x : 0, y : 0 };
+		left_sprite.moveTo(0,0);
 		left_sprite.kind = "left_wall";
 		right_sprite.image = surface1;
-		right_sprite.position = { x : game.width - 1, y : 0 };
+		right_sprite.moveTo(game.width-1, 0);
 		right_sprite.kind = "right_wall";
 		top_sprite.image = surface2;
-		top_sprite.position = { x : 0, y : 0 };
+		top_sprite.moveTo(0,0);
 		top_sprite.kind = "top_wall";
 		bottom_sprite.image = surface2;
-		bottom_sprite.position = { x : 0, y : (_player.y + (_player.height*5)) };
+		bottom_sprite.moveTo(0, (_player.y + (_player.height*5)));
 		bottom_sprite.kind = "bottom_wall";
 
 		_scene.addChild(left_sprite);
@@ -331,10 +331,10 @@ window.onload = function(){
 		_scene.addChild(bottom_sprite);
 	};
 
-	function buildPlayerBlock(_width, _height, _pad, _world){
+	function buildPlayerBlock(_width, _height, _pad){
 		var surface = new Surface( _width, _height);
 		var context;
-		var sprite = new PhyBoxSprite( _width, _height, enchant.box2d.STATIC_SPRITE, 1.0, 20.0, 0.5, true);
+		var sprite = new Sprite(_width, _height);
 		var s_x = Math.floor(game.width/2) - Math.floor(surface.width/2);
 		var s_y = Math.floor(game.height) - Math.floor(surface.height) - _pad.height;
 
@@ -361,9 +361,8 @@ window.onload = function(){
 		context.stroke();
 
 		sprite.image = surface;
-		sprite.position = { x : s_x, y : s_y };
+		sprite.moveTo(s_x, s_y);
 		sprite.kind = "player";
-
 
 		console.log("player x = " + s_x + " player y = " + s_y);
 
@@ -441,15 +440,9 @@ window.onload = function(){
 	}
 
 	function buildSquare(_player, _color, _width, _height, _x, _y){
-		var surface = new Surface( _width, _height);
-		var sprite = new PhyBoxSprite( surface.width,
-									   surface.height,
-									   enchant.box2d.DYNAMIC_SPRITE,
-									   2.5, // [density] Spriteの密度
-									   0.0, // [friction] Spriteの摩擦.
-									   0.0, // [restitution] Spriteの反発.
-									   true
-									 );
+		var surface = new Surface(_width, _height);
+		var sprite = new Sprite(surface.width,
+								surface.height);
 		var s_x;
 		var s_y;
 
@@ -474,7 +467,7 @@ window.onload = function(){
 
         sprite.image = game.assets['image/3ca.png'];
 		sprite.frame = 0;
-		sprite.position = { x : s_x, y : s_y };
+		sprite.moveTo(s_x, s_y);
 		sprite.isAwake = true;
 		sprite.kind = "ball";
 
@@ -483,7 +476,7 @@ window.onload = function(){
 
 	function buildBall(_player, _color, _rad, _x, _y){
 		var surface = new Surface( _rad*2, _rad*2);
-		var sprite = new PhyCircleSprite(_rad, enchant.box2d.DYNAMIC_SPRITE, 1.0, 0.0, 0.0, false);
+		var sprite = new Sprite(_rad*2, _rad*2);
 		var s_x;
 		var s_y;
 
@@ -508,30 +501,20 @@ window.onload = function(){
 
 		console.log("ball x = " + s_x + " ball y = " + s_y);
 
-//		sprite.image = surface;
         sprite.image = game.assets['image/yamochi.png'];
 		sprite.frame = 0;
-		sprite.position = { x : s_x, y : s_y };
+		sprite.moveTo(s_x, s_y);
 		sprite.isAwake = true;
 		sprite.kind = "ball";
 
 		return sprite;
 	};
 
-	function setBallCallback(_ball, _world) {
-
-		_ball.addEventListener(Event.ENTER_FRAME, function(e){
-			_world.step(game.fps);
-		});
-	}
-
-	function divideBall(_player, _scene, _world, _x, _y){
+	function divideBall(_player, _scene, _x, _y){
 		var ball; 
 		var pm = Param.getInstance();
 		ball = buildBall(_player, "red", 50/2, _x, _y); 
 		pm.ballAr.push(ball);
-		ball.applyImpulse(new b2Vec2(0.0, 10.0));
-		setBallCallback(ball, _world);
 		_scene.addChild(ball);
 	}
 
@@ -589,7 +572,7 @@ window.onload = function(){
 						 9, 9, 3, 9, 2, 2, 9, 3, 9, 9, 
 						 2, 9, 9, 9, 2, 2, 9, 9, 9, 2 ];
 
-	function buildBlocks(_scene, _blk_array, _lines, _player, _pad, _world){
+	function buildBlocks(_scene, _blk_array, _lines, _player, _pad){
 		var s_w = 30;
 		var s_h = 10;
 		var term_line = 10*10;
@@ -659,12 +642,10 @@ window.onload = function(){
 				context.closePath();
 				context.stroke();
 
-				tmp_sprite  = new PhyBoxSprite( s_w, s_h,
-												enchant.box2d.STATIC_SPRITE,
-												1.0, 0.0, 0.0, true);
+				tmp_sprite  = new Sprite(s_w, s_h);
 				tmp_sprite.image = surface;
 				tmp_sprite.color = surface.context.fillStyle;
-				tmp_sprite.position = { x : pos_x, y : pos_y };
+				tmp_sprite.moveTo(pos_x, pos_y);
 				tmp_sprite.kind = "block";
 
 				sprite.push(tmp_sprite);
@@ -678,11 +659,11 @@ window.onload = function(){
 			pm.blkGr.addEventListener(Event.CHILD_REMOVED, function(e){
 				var tmp_block = pm.destBlkAr.pop();
 				var col = tmp_block.color;
-				var x = tmp_block.position.x;
-				var y = tmp_block.position.y;
+				var x = tmp_block.x;
+				var y = tmp_block.y;
 
 				if(((col == "#0000ff") && (pm.ballAr.length < 5)) && (pm.bombMode == false))
-					divideBall(_player, _scene, _world, x, y);
+					divideBall(_player, _scene, x, y);
 			});
 		}
 
@@ -817,7 +798,7 @@ window.onload = function(){
 
 	function controlBall(_player, _block, _scene, _stage,  _input){
 		var pm = Param.getInstance();
-		var move_distance = _player.position.x;
+		var move_distance = _player.x;
    		for(var ii=0; ii<pm.ballAr.length; ii++){
    			var _ball = pm.ballAr[ii];
    			var posX = pm.ballAr[ii].x;
@@ -845,175 +826,127 @@ window.onload = function(){
    				destroyBall(pm.ballAr, _ball);
    			}
 
-   			if(_ball.isAwake == false){
-   				move_distance -= _player.position.x;
-   				if (_input.up) {
-   					_ball.isAwake = true;
-   				}
-   				_ball.setAwake(_ball.isAwake);
-   			}
-   			else{
-				for(var jj=0; jj<_block.length; jj++){
-					var blkSp = _block[jj];
-					var touch_ratio = 35;
+			for(var jj=0; jj<_block.length; jj++){
+				var blkSp = _block[jj];
+				var touch_ratio = 35;
 
-					if(blkSp.color == "#444444") touch_ratio = 25;
+				if(blkSp.color == "#444444") touch_ratio = 25;
 
-					if(_ball.within(blkSp, touch_ratio) == true){
-   						_ball.setAwake(false);
-   						destroyBlock(blkSp, _block);
+				if(_ball.within(blkSp, touch_ratio) == true){
+   					destroyBlock(blkSp, _block);
 
-   						if(blkSp.color == "#444444"){
-   							var zx = _ball.position.x;
-   							var zy = _ball.vy + 1.2;
-   							var center = game.width / 2;
+   					if(blkSp.color == "#444444"){
+   						var zx = _ball.x;
+   						var zy = _ball.vy + 1.2;
+   						var center = game.width / 2;
 
-							if(zx < center){
-								zx = _ball.vx - 4.0;
-							}
-							else{
-								zx = _ball.vx + 4.0;
-							}
-
-							if(++(pm.imWatchdog) >= 20){
-								zx *= 10;
-								pm.imWatchdog = 0;
-							}
-
-   							if(blkSp.y >= _ball.position.y){
-   								zy *= -1;
-   							}
-
-							zx = pm.getVxRatio(zx);
-							zy = pm.getVyRatio(zy);
-   							_ball.applyImpulse(new b2Vec2(zx, zy));
-   						}
-   						else if(pm.yamochiMode == true){
-   							_ball.applyImpulse(new b2Vec2(0.0, 2.0));
-   						}
-   						else {
-   							var zx = _ball.vx;
-   							var zy = _ball.vy - 2.0;
-   							if(zx > 0){
-   								zx += 1.0;
-   							}
-   							else {
-   								zx -= 1.0;
-   							}
-							zx = pm.getVxRatio(zx);
-							zy = pm.getVyRatio(zy);
-   							_ball.applyImpulse(new b2Vec2(zx, zy));
-   							_ball.applyTorque(zx);
-   						}
-   						
-   						_ball.setAwake(true);
-   						if(pm.bombMode == true){
-   							bomb(_scene, _ball.x, _ball.y, _block);
-   							destroyBall(pm.ballAr, _ball);
-   							pm.bombMode = false;
-   						}
-					}
-				}
-
-   				_ball.contact(function(obj){
-   					if(obj.kind == "block") {
-   						_ball.setAwake(false);
-   						destroyBlock(obj, _block);
-
-   						if(obj.color == "#444444"){
-   							var zx = _ball.position.x;
-   							var zy = _ball.vy + 1.2;
-   							var center = game.width / 2;
-   							if(zx > center){
-   								zx = _ball.vx - 1.2;
-   							}
-   							else { 
-   								zx = _ball.vx + 1.2;
-   							}
-
-   							if(obj.y >= _ball.position.y){
-   								zy *= -1;
-   							}
-
-							if(++(pm.imWatchdog) >= 20){
-								zx *= 10;
-								pm.imWatchdog = 0;
-							}
-
-							zx = pm.getVxRatio(zx);
-							zy = pm.getVyRatio(zy);
-   							_ball.applyImpulse(new b2Vec2(zx, zy));
-   						}
-   						else if(pm.yamochiMode == true){
-   							_ball.applyImpulse(new b2Vec2(0.0, 2.0));
-   						}
-   						else {
-   							var zx = _ball.vx;
-   							var zy = _ball.vy - 2.0;
-   							if(zx > 0){
-   								zx += 1.0;
-   							}
-   							else {
-   								zx -= 1.0;
-   							}
-							zx = pm.getVxRatio(zx);
-							zy = pm.getVyRatio(zy);
-   							_ball.applyImpulse(new b2Vec2(zx, zy));
-   							_ball.applyTorque(zx);
-   						}
-   						
-   						_ball.setAwake(true);
-   						if(pm.bombMode == true){
-   							bomb(_scene, _ball.x, _ball.y, _block);
-   							destroyBall(pm.ballAr, _ball);
-   							pm.bombMode = false;
-   						}
-   					}
-					else if(obj.kind == "player"){
-   						if(pm.upP == true){
-   							pm.upP = false;
-   							pm.downP = false;
-   							_ball.applyImpulse( new b2Vec2(0.0, -10.0) );
-   							console.log("upPower");
-   							_ball.isAwake = true;
-   						}
-   						else if(pm.downP == true){
-   							if(_ball.y + _ball.height <= _player.y){
-   								_ball.y = _player.y - _ball.height;
-   							}
-   							pm.upP = false;
-   							pm.downP = false;
-   							console.log("downPower");
-   							_ball.isAwake = false;
-   						}
-						else{
-							var zx = Math.abs(_ball.vx) / 10;
-							var zy = _ball.vy;
-							var border_x = Math.floor(game.width/2);
-							var center_x = Math.floor(obj.x/2);
-
-							if(border_x >= center_x){
-								zx = Math.abs(zx) * -1.0;
-							}
-							console.log("vx = " + _ball.vx + " invert zx = " + zx);
-
-							if(zy > 0){
-								zy = Math.abs(zy / 10) * -1.0;
-								if(zy < -10.0) zy = -5.0;
-								console.log("vy = " + _ball.vy + " invert zy = " + zy);
-							}
-   							_ball.applyImpulse( new b2Vec2(zx, zy) );
+						if(zx < center){
+							zx = _ball.vx - 4.0;
 						}
-   						_ball.setAwake(_ball.isAwake);
+						else{
+							zx = _ball.vx + 4.0;
+						}
+
+						if(++(pm.imWatchdog) >= 20){
+							zx *= 10;
+							pm.imWatchdog = 0;
+						}
+
+   						if(blkSp.y >= _ball.y){
+   							zy *= -1;
+   						}
    					}
-   					else if(obj.kind == "ball"){
-//   						obj.destroy();
+   					else if(pm.yamochiMode == true){
+						// where does yamochi-san go?
    					}
-   					else if(obj.kind == "bottom_wall"){
+   					else {
+						// where does ball go?
+   					}
+   					
+   					if(pm.bombMode == true){
+   						bomb(_scene, _ball.x, _ball.y, _block);
    						destroyBall(pm.ballAr, _ball);
+   						pm.bombMode = false;
    					}
-   				});
-   			}
+				}
+			}
+
+   			//_ball.contact(function(obj){
+   			//	if(obj.kind == "block") {
+   			//		destroyBlock(obj, _block);
+   			//		if(obj.color == "#444444"){
+   			//			var zx = _ball.x;
+   			//			var zy = _ball.vy + 1.2;
+   			//			var center = game.width / 2;
+   			//			if(zx > center){
+   			//				zx = _ball.vx - 1.2;
+   			//			}
+   			//			else { 
+   			//				zx = _ball.vx + 1.2;
+   			//			}
+
+   			//			if(obj.y >= _ball.y){
+   			//				zy *= -1;
+   			//			}
+
+			//			if(++(pm.imWatchdog) >= 20){
+			//				zx *= 10;
+			//				pm.imWatchdog = 0;
+			//			}
+
+   			//		}
+   			//		else if(pm.yamochiMode == true){
+
+   			//		}
+   			//		else {
+
+   			//		}
+   			//		
+   			//		if(pm.bombMode == true){
+   			//			bomb(_scene, _ball.x, _ball.y, _block);
+   			//			destroyBall(pm.ballAr, _ball);
+   			//			pm.bombMode = false;
+   			//		}
+   			//	}
+			//	else if(obj.kind == "player"){
+   			//		if(pm.upP == true){
+   			//			pm.upP = false;
+   			//			pm.downP = false;
+   			//			console.log("upPower");
+   			//		}
+   			//		else if(pm.downP == true){
+   			//			if(_ball.y + _ball.height <= _player.y){
+   			//				_ball.y = _player.y - _ball.height;
+   			//			}
+   			//			pm.upP = false;
+   			//			pm.downP = false;
+   			//			console.log("downPower");
+   			//		}
+			//		else{
+			//			var zx = Math.abs(_ball.vx) / 10;
+			//			var zy = _ball.vy;
+			//			var border_x = Math.floor(game.width/2);
+			//			var center_x = Math.floor(obj.x/2);
+
+			//			if(border_x >= center_x){
+			//				zx = Math.abs(zx) * -1.0;
+			//			}
+			//			console.log("vx = " + _ball.vx + " invert zx = " + zx);
+
+			//			if(zy > 0){
+			//				zy = Math.abs(zy / 10) * -1.0;
+			//				if(zy < -10.0) zy = -5.0;
+			//				console.log("vy = " + _ball.vy + " invert zy = " + zy);
+			//			}
+			//		}
+   			//	}
+   			//	else if(obj.kind == "ball"){
+//   		//			obj.destroy();
+   			//	}
+   			//	else if(obj.kind == "bottom_wall"){
+   			//		destroyBall(pm.ballAr, _ball);
+   			//	}
+   			//});
    		}
 
    		if(pm.ballAr.length <= 0){
@@ -1040,6 +973,7 @@ window.onload = function(){
    				}
    			}
    		}
+
    		/* clear check => or rather, all blocks destruction is completed? */
    		var lastBlockLength = _block.length - parseInt(pm.imBlockCount);
    		if(lastBlockLength <= 0){
@@ -1050,7 +984,6 @@ window.onload = function(){
 
 	var gameStage = function (_stage){
 
-		var world = new PhysicsWorld( 0.0, 0.01 );
 		var scene = new Scene();
 		var pad = new Pad();
 		var ii = 0;
@@ -1064,8 +997,8 @@ window.onload = function(){
 
 		setBackGround(scene, _stage);
 
-		player = buildPlayerBlock(50, 12, pad, scene, world);
-		block = buildBlocks(scene, getBlockByStageNumber(_stage), 10, player, pad, world);
+		player = buildPlayerBlock(50, 12, pad, scene);
+		block = buildBlocks(scene, getBlockByStageNumber(_stage), 10, player, pad);
 
 console.log("stage = " + _stage);
 
@@ -1076,17 +1009,12 @@ console.log("stage = " + _stage);
 			ball = buildSquare(player, "red", 22, 12); 
 		}
 
-		ball.isAwake = true;
-		ball.setAwake(ball.isAwake);
-		ball.applyImpulse( new b2Vec2(0.3, 2.0) )
-
 		scene.addChild(ball);
 		pm.ballAr.push(ball);
 
 		setPlayerCallback(player, ball);
-		setBallCallback(ball, world);
 
-		buildWall(player, scene, world);
+		buildWall(player, scene);
 
 		scene.addChild(player);
 
@@ -1105,35 +1033,30 @@ console.log("stage = " + _stage);
 				if(input.g){
 					for(var ii=0; ii<pm.ballAr.length; ii++){
 						var ball = pm.ballAr[ii];
-						ball.applyImpulse(new b2Vec2(0.0, 5.0));
 					}
 				}
 
 				if(input.z){
 					for(var ii=0; ii<pm.ballAr.length; ii++){
 						var ball = pm.ballAr[ii];
-						ball.applyImpulse(new b2Vec2(0.0, -5.0));
 					}
 				}
 
 				if(input.r){
 					for(var ii=0; ii<pm.ballAr.length; ii++){
 						var ball = pm.ballAr[ii];
-						ball.applyImpulse(new b2Vec2(5.0, 0.0));
 					}
 				}
 
 				if(input.l){
 					for(var ii=0; ii<pm.ballAr.length; ii++){
 						var ball = pm.ballAr[ii];
-						ball.applyImpulse(new b2Vec2(-5.0, 0.0));
 					}
 				}
 
 				if(input.t){
 					for(var ii=0; ii<pm.ballAr.length; ii++){
 						var ball = pm.ballAr[ii];
-						ball.applyTorque(0.3);
 					}
 				}
 
