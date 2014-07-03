@@ -8,11 +8,13 @@ window.onload = function(){
 
     var game = new Core(320, 320);
 	var WATCH_DOG_COUNT = 180;
+	var FIRST_SPEED = 30*10;
 
     game.fps = 30;
 	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
-	game.preload('image/yamochi.png', 'image/gameover.png', 'image/clear.png', 'image/bomb_1.png',
-				 'image/3ca.png', 'image/title_true.png', 'image/p_ligo.png', 'image/rainbow.png');
+	game.preload('image/yamochi.png', 'image/yamochi_back.png', 'image/gameover.png', 'image/clear.png',
+				 'image/bomb_1.png', 'image/3ca.png', 'image/3ca_range.png', 'image/title_true.png',
+				 'image/p_ligo.png', 'image/rainbow.png');
 	game.keybind( 71, 'g' );
 	game.keybind( 84, 't' );
 	game.keybind( 90, 'z' );
@@ -231,14 +233,14 @@ window.onload = function(){
 		var isDestroyComplete = false;
 		for(var ii=0; ii<_ballArray.length; ii++){
 			if((_isForceDestroy == true) ||
-			   (_obj == _ballArray[ii])  ||
-			   ((_ballArray[ii].x > game.width) ||
-			    (_ballArray[ii].x < 0)		  	 ||
-			    (_ballArray[ii].y > game.height)||
-			    (_ballArray[ii].y < 0)))
+			   (_obj == _ballArray[ii].firstChild)  ||
+			   ((_ballArray[ii].firstChild.x > game.width) ||
+			    (_ballArray[ii].firstChild.x < 0)		  	 ||
+			    (_ballArray[ii].firstChild.y > game.height)||
+			    (_ballArray[ii].firstChild.y < 0)))
 			{
-				if(_ballArray[ii].destroy != undefined){
-					_ballArray[ii].destroy();
+				if(_ballArray[ii].firstChild.destroy != undefined){
+					_ballArray[ii].firstChild.destroy();
 				}
 				_ballArray.splice(ii, 1);
 				isDestroyComplete = true;
@@ -412,26 +414,25 @@ window.onload = function(){
 				if(tmp_block.color != "#444444"){
 					pm.destBlkAr.push(tmp_block);
 					_block.splice(ii, 1);
-					tmp_block.destroy();
+					tmp_block.removeChild();
 				}
 			}
 		}
 	}
 
-	function setPlayerCallback(_player, _ball){
+	function setPlayerCallback(_player, _ball_group){
 		_player.addEventListener(Event.TOUCH_MOVE, function(e) {
 			var tmp_x = e.x;
 			var tmp_y = e.y;
 			var dest_x = tmp_x;
 
+			var ball_front = _ball_group.firstChild;
+			var ball_back = _ball_group.lastChild;
+
 			_player.x = dest_x;
 
-			if(_ball.isAwake == false){
-				_ball.x -= dest_x;
-			}
-
-			if(_player.x >= game.width - _ball.width - 5){
-				_player.x = game.width - _ball.width - 5;
+			if(_player.x >= game.width - ball_front.width - 5){
+				_player.x = game.width - ball_front.width - 5;
 			}
 			else if(_player.x <= 0 + 5){
 				_player.x = 5;
@@ -440,9 +441,10 @@ window.onload = function(){
 	}
 
 	function buildSquare(_player, _color, _width, _height, _x, _y){
-		var surface = new Surface(_width, _height);
-		var sprite = new Sprite(surface.width,
-								surface.height);
+		var surface			= new Surface(_width, _height);
+		var sp_group		= new Group(_width, _height);
+		var front_sprite	= new Sprite(surface.width, surface.height);
+		var back_sprite		= new Sprite(surface.width, surface.height);
 		var s_x;
 		var s_y;
 
@@ -465,18 +467,30 @@ window.onload = function(){
 
 		console.log("ball x = " + s_x + " ball y = " + s_y);
 
-        sprite.image = game.assets['image/3ca.png'];
-		sprite.frame = 0;
-		sprite.moveTo(s_x, s_y);
-		sprite.isAwake = true;
-		sprite.kind = "ball";
+        front_sprite.image = game.assets['image/3ca.png'];
+		front_sprite.frame = 0;
+		front_sprite.moveTo(0, 0);
+		front_sprite.isAwake = true;
+		front_sprite.kind = "ball_front";
+		sp_group.addChild(front_sprite);
 
-		return sprite;
+        back_sprite.image = game.assets['image/3ca_range.png'];
+		back_sprite.frame = 0;
+		back_sprite.moveTo(2, 0);
+		back_sprite.isAwake = true;
+		back_sprite.kind = "ball_back";
+		back_sprite.opacity = 0.8;
+		sp_group.addChild(back_sprite);
+		sp_group.moveTo(s_x, s_y);
+
+		return sp_group;
 	};
 
 	function buildBall(_player, _color, _rad, _x, _y){
 		var surface = new Surface( _rad*2, _rad*2);
-		var sprite = new Sprite(_rad*2, _rad*2);
+		var sp_group = new Group(_rad*2, _rad*2);
+		var front_sprite = new Sprite(_rad*2, _rad*2);
+		var back_sprite = new Sprite(_rad*2, _rad*2);
 		var s_x;
 		var s_y;
 
@@ -501,13 +515,22 @@ window.onload = function(){
 
 		console.log("ball x = " + s_x + " ball y = " + s_y);
 
-        sprite.image = game.assets['image/yamochi.png'];
-		sprite.frame = 0;
-		sprite.moveTo(s_x, s_y);
-		sprite.isAwake = true;
-		sprite.kind = "ball";
+        front_sprite.image = game.assets['image/yamochi.png'];
+		front_sprite.frame = 0;
+		front_sprite.moveTo(0, 0);
+		front_sprite.isAwake = true;
+		front_sprite.kind = "ball_front";
+		sp_group.addChild(front_sprite);
 
-		return sprite;
+        back_sprite.image = game.assets['image/yamochi_back.png'];
+		back_sprite.frame = 0;
+		back_sprite.moveTo(2, 0);
+		back_sprite.isAwake = true;
+		back_sprite.kind = "ball_back";
+		sp_group.addChild(back_sprite);
+		sp_group.moveTo(s_x, s_y);
+
+		return sp_group;
 	};
 
 	function divideBall(_player, _scene, _x, _y){
@@ -800,52 +823,26 @@ window.onload = function(){
 		var pm = Param.getInstance();
 		var move_distance = _player.x;
    		for(var ii=0; ii<pm.ballAr.length; ii++){
-   			var _ball = pm.ballAr[ii];
-   			var posX = pm.ballAr[ii].x;
-   			var posY = pm.ballAr[ii].y;
+   			var _ball = pm.ballAr[ii].lastChild;
 
-			if(Math.abs(_ball.vx) < 5.0){
-				if(_ball.vx > 0){
-					_ball.vx = 5.0;
-				}
-				else{
-					_ball.vx = -5.0;
-				}
-			}
-			if(Math.abs(_ball.vy) < 5.0){
-				if(_ball.vy > 0){
-					_ball.vy = 5.0;
-				}
-				else{
-					_ball.vy = -5.0;
-				}
-			}
-
-   			var deadLine = (_player.y + (_player.height) + 5);
-   			if(posY >= deadLine){
-   				destroyBall(pm.ballAr, _ball);
-   			}
+			/* atode */
+   			//var deadLine = (_player.y + (_player.height) + 5);
+   			//if(posY >= deadLine){
+   			//	destroyBall(pm.ballAr, _ball);
+   			//}
 
 			for(var jj=0; jj<_block.length; jj++){
 				var blkSp = _block[jj];
 				var touch_ratio = 35;
 
-				if(blkSp.color == "#444444") touch_ratio = 25;
-
-				if(_ball.within(blkSp, touch_ratio) == true){
-   					destroyBlock(blkSp, _block);
+				if(_ball.intersect(blkSp) == true){
+					/* atode */
+   					//destroyBlock(blkSp, _block);
 
    					if(blkSp.color == "#444444"){
    						var zx = _ball.x;
    						var zy = _ball.vy + 1.2;
    						var center = game.width / 2;
-
-						if(zx < center){
-							zx = _ball.vx - 4.0;
-						}
-						else{
-							zx = _ball.vx + 4.0;
-						}
 
 						if(++(pm.imWatchdog) >= 20){
 							zx *= 10;
@@ -870,83 +867,6 @@ window.onload = function(){
    					}
 				}
 			}
-
-   			//_ball.contact(function(obj){
-   			//	if(obj.kind == "block") {
-   			//		destroyBlock(obj, _block);
-   			//		if(obj.color == "#444444"){
-   			//			var zx = _ball.x;
-   			//			var zy = _ball.vy + 1.2;
-   			//			var center = game.width / 2;
-   			//			if(zx > center){
-   			//				zx = _ball.vx - 1.2;
-   			//			}
-   			//			else { 
-   			//				zx = _ball.vx + 1.2;
-   			//			}
-
-   			//			if(obj.y >= _ball.y){
-   			//				zy *= -1;
-   			//			}
-
-			//			if(++(pm.imWatchdog) >= 20){
-			//				zx *= 10;
-			//				pm.imWatchdog = 0;
-			//			}
-
-   			//		}
-   			//		else if(pm.yamochiMode == true){
-
-   			//		}
-   			//		else {
-
-   			//		}
-   			//		
-   			//		if(pm.bombMode == true){
-   			//			bomb(_scene, _ball.x, _ball.y, _block);
-   			//			destroyBall(pm.ballAr, _ball);
-   			//			pm.bombMode = false;
-   			//		}
-   			//	}
-			//	else if(obj.kind == "player"){
-   			//		if(pm.upP == true){
-   			//			pm.upP = false;
-   			//			pm.downP = false;
-   			//			console.log("upPower");
-   			//		}
-   			//		else if(pm.downP == true){
-   			//			if(_ball.y + _ball.height <= _player.y){
-   			//				_ball.y = _player.y - _ball.height;
-   			//			}
-   			//			pm.upP = false;
-   			//			pm.downP = false;
-   			//			console.log("downPower");
-   			//		}
-			//		else{
-			//			var zx = Math.abs(_ball.vx) / 10;
-			//			var zy = _ball.vy;
-			//			var border_x = Math.floor(game.width/2);
-			//			var center_x = Math.floor(obj.x/2);
-
-			//			if(border_x >= center_x){
-			//				zx = Math.abs(zx) * -1.0;
-			//			}
-			//			console.log("vx = " + _ball.vx + " invert zx = " + zx);
-
-			//			if(zy > 0){
-			//				zy = Math.abs(zy / 10) * -1.0;
-			//				if(zy < -10.0) zy = -5.0;
-			//				console.log("vy = " + _ball.vy + " invert zy = " + zy);
-			//			}
-			//		}
-   			//	}
-   			//	else if(obj.kind == "ball"){
-//   		//			obj.destroy();
-   			//	}
-   			//	else if(obj.kind == "bottom_wall"){
-   			//		destroyBall(pm.ballAr, _ball);
-   			//	}
-   			//});
    		}
 
    		if(pm.ballAr.length <= 0){
@@ -978,7 +898,6 @@ window.onload = function(){
    		var lastBlockLength = _block.length - parseInt(pm.imBlockCount);
    		if(lastBlockLength <= 0){
    			game.pushScene(gameclearScene(_stage));
-   			//game.replaceScene(gameclearScene(_stage));
    		}
 	}
 
@@ -988,7 +907,7 @@ window.onload = function(){
 		var pad = new Pad();
 		var ii = 0;
 
-		var ball; 
+		var ball_group; 
 		var player;
 		var block;
 		var pm = Param.getInstance();
@@ -1003,16 +922,17 @@ window.onload = function(){
 console.log("stage = " + _stage);
 
 		if(pm.yamochiMode == true){
-			ball = buildBall(player, "red", 50/2); 
+			ball_group = buildBall(player, "red", 50/2); 
 		}
 		else{
-			ball = buildSquare(player, "red", 22, 12); 
+			ball_group = buildSquare(player, "red", 22, 12); 
+			ball_group.tl.moveTo(game.width, game.height, FIRST_SPEED, enchant.Easing.LINEAR);
 		}
 
-		scene.addChild(ball);
-		pm.ballAr.push(ball);
+		scene.addChild(ball_group);
+		pm.ballAr.push(ball_group);
 
-		setPlayerCallback(player, ball);
+		setPlayerCallback(player, ball_group);
 
 		buildWall(player, scene);
 
@@ -1031,33 +951,18 @@ console.log("stage = " + _stage);
 				}
 
 				if(input.g){
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
-					}
 				}
 
 				if(input.z){
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
-					}
 				}
 
 				if(input.r){
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
-					}
 				}
 
 				if(input.l){
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
-					}
 				}
 
 				if(input.t){
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
-					}
 				}
 
 				if(input.s){
@@ -1065,7 +970,7 @@ console.log("stage = " + _stage);
 					console.log("block length = " + block.length + " last = " + lastBlockLength);
 
 					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii];
+						var ball = pm.ballAr[ii].firstChild;
 						console.log("angle = " + ball.angle + " angularVelocity = " + ball.angularVelocity);
 						console.log("velocity = " + ball.velocity + " vx = " + ball.vx + " vy = " + ball.vy);
 					}
@@ -1092,6 +997,21 @@ console.log("stage = " + _stage);
 	
 				if(player.x + player.width > game.width) {
 					player.x = game.width - player.width;
+				}
+
+   				for(var ii=0; ii<pm.ballAr.length; ii++){
+   					var _ball = pm.ballAr[ii].lastChild;
+   					var _ball_fr = pm.ballAr[ii].firstChild;
+					if(player.intersect(_ball) == true){
+						var grp = pm.ballAr[ii];
+						pm.vx_ratio += 10;
+						grp.y = player.y - _ball.height;
+						console.log(grp.y);
+						grp.tl.clear().moveY(0, 30, enchant.Easing.LINEAR).then(function(){
+						console.log(grp.y);
+							if(grp.y != 0) grp.tl.moveY(0, 30, enchant.Easing.LINEAR);
+						});
+					}
 				}
 			}
 		});
