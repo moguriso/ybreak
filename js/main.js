@@ -40,8 +40,10 @@ window.onload = function(){
 		pm.imWatchdog	= 0;
 		pm.vx_ratio		= 0;
 		pm.vy_ratio		= 0;
+		pm.p_ratio		= 0;
 		pm.upP			= false;
 		pm.downP		= false;
+		pm.isPitatto	= false;
 		pm.bombMode		= false;
 	}
 
@@ -60,8 +62,10 @@ window.onload = function(){
 			var _upPower;
 			var _downPower;
 			var _sBlockGroup;
+			var _sWallGroup
 			var _sDestBlockArray;
 			var _sBallArray;
+			var _isPitatto;
 			var _isBomberMode;
 			var _isYamochiMode;
 			var _prevLength = 0;
@@ -71,6 +75,7 @@ window.onload = function(){
 			var _imWatchDogCount = 0;
 			var _vx_ratio = 0;
 			var _vy_ratio = 0;
+			var _pitatto_ratio = 0;
 
     		return {
 				// public method
@@ -129,6 +134,19 @@ window.onload = function(){
 						this._downPower = is;
         		    }
         		},
+        		isPitatto : {
+        		    get: function() {
+        		        return this._isPitatto;
+        		    },
+        		    set: function(is) {
+						this._isPitatto = is;
+        		    }
+        		},
+        		wallGr : {
+        		    get: function() {
+        		        return this._sWallGroup;
+        		    }
+        		},
         		blkGr : {
         		    get: function() {
         		        return this._sBlockGroup;
@@ -158,6 +176,14 @@ window.onload = function(){
         		    },
         		    set: function(is) {
 						this._isYamochiMode = is;
+        		    }
+        		},
+        		p_ratio : {
+        		    get: function() {
+        		        return this._pitatto_ratio;
+        		    },
+        		    set: function(cnt) {
+						this._pitatto_ratio = cnt;
         		    }
         		},
         		prevLen: {
@@ -297,12 +323,15 @@ window.onload = function(){
 	}
 
 	function buildWall(_player, _scene){
+		var pm = Param.getInstance();
 		var surface1	= new Surface(1, game.height*2);
 		var surface2	= new Surface(game.width*2, 1);
 		var left_sprite = new Sprite(1, game.height*2);
 		var right_sprite = new Sprite(1, game.height*2);
 		var top_sprite = new Sprite(game.width*2, 1);
 		var bottom_sprite = new Sprite(game.width*2, 1);
+
+		pm.wallGr = new Group();
 
 		surface1.context.fillStyle = "white";
 		surface1.context.globalAlpha = 0;
@@ -324,10 +353,12 @@ window.onload = function(){
 		bottom_sprite.moveTo(0, (_player.y + (_player.height*5)));
 		bottom_sprite.kind = "bottom_wall";
 
-		_scene.addChild(left_sprite);
-		_scene.addChild(right_sprite);
-		_scene.addChild(top_sprite);
-		_scene.addChild(bottom_sprite);
+		pm.wallGr.addChild(left_sprite);
+		pm.wallGr.addChild(right_sprite);
+		pm.wallGr.addChild(top_sprite);
+		pm.wallGr.addChild(bottom_sprite);
+
+		_scene.addChild(pm.wallGr);
 	};
 
 	function buildPlayerBlock(_width, _height, _pad){
@@ -475,7 +506,7 @@ window.onload = function(){
 		back_sprite.moveTo(2, 0);
 		back_sprite.isAwake = true;
 		back_sprite.kind = "ball_back";
-		back_sprite.opacity = 0.8;
+		back_sprite.opacity = 0.0;
 		sp_group.addChild(back_sprite);
 		sp_group.moveTo(s_x, s_y);
 
@@ -818,8 +849,9 @@ window.onload = function(){
 		var pm = Param.getInstance();
 		var move_distance = _player.x;
    		for(var ii=0; ii<pm.ballAr.length; ii++){
-   			var _ball = pm.ballAr[ii].lastChild;
-			var posY = pm.ballAr[ii].y + (_ball.height/2);
+			var grp		= pm.ballAr[ii];
+   			var _ball	= pm.ballAr[ii].lastChild;
+			var posY	= pm.ballAr[ii].y + (_ball.height/2);
 
    			var deadLine = (_player.y + (_player.height) + 5);
    			if(posY >= deadLine){
@@ -832,18 +864,41 @@ window.onload = function(){
 
 				if(_ball.intersect(blkSp) == true){
    					if(blkSp.color == "#444444"){
-   						var zx = _ball.x;
-   						var zy = _ball.vy + 1.2;
-   						var center = game.width / 2;
+						var acos = calcRad(blkSp, grp);
+						var vx = 0;
+						var vy = 0;
+						var pos_y = 0;
 
-						if(++(pm.imWatchdog) >= 20){
-							zx *= 10;
-							pm.imWatchdog = 0;
+						if(blkSp.y < grp.y){
+							pos_y = game.height;
 						}
 
-   						if(blkSp.y >= _ball.y){
-   							zy *= -1;
-   						}
+						if(acos <= Math.PI/2){
+							var qt = Math.PI/4;
+							if(acos > qt){
+								vx = (game.width/2) * (acos/Math.PI/2);
+							}
+							else if(acos < qt){
+								vy = pos_y * (acos/qt);
+							}
+						}
+						else {
+							var qt = Math.PI / 4 * 3;
+							vx = game.width;
+
+							if(acos < qt){
+								vx = game.width * (acos/qt);
+							}
+							else if(acos > qt){
+								vy = pos_y * (acos/Math.PI);
+							}
+						}
+						grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
+
+						/* atode */
+					//	if(++(pm.imWatchdog) >= 20){
+					//		pm.imWatchdog = 0;
+					//	}
    					}
    					else if(pm.yamochiMode == true){
 						// where does yamochi-san go?
@@ -858,6 +913,44 @@ window.onload = function(){
    						pm.bombMode = false;
    					}
 				}
+				else {
+					var pm = Param.getInstance();
+					for(var kk=0; kk<pm.wallGr.childNodes.length; kk++){
+						var wall = pm.wallGr.childNodes[kk];
+						if(_ball.intersect(wall) == true){
+							var acos = calcRad(wall, grp, wall.kind);
+							var vx = 0;
+							var vy = 0;
+							var pos_y = 0;
+
+							if(wall.kind == "top_wall"){
+								pos_y = game.height;
+							}
+
+							if(acos <= Math.PI/2){
+								var qt = Math.PI/4;
+								if(acos > qt){
+									vx = (game.width/2) * (acos/Math.PI/2);
+								}
+								else if(acos < qt){
+									vy = pos_y * (acos/qt);
+								}
+							}
+							else {
+								var qt = Math.PI / 4 * 3;
+								vx = game.width;
+
+								if(acos < qt){
+									vx = game.width * (acos/qt);
+								}
+								else if(acos > qt){
+									vy = pos_y * (acos/Math.PI);
+								}
+							}
+							grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
+						}
+					}
+				}
 			}
    		}
 
@@ -869,20 +962,6 @@ window.onload = function(){
    				if((pm.prevLen == 0) && (pm.currentLen == 0)){
    					pm.prevLen = pm.ballAr.length;
    				}
-   				else {
-   					pm.currentLen = pm.ballAr.length;
-   					if(pm.prevLen == pm.currentLen){
-   						pm.assertCnt++;
-   						if(pm.assertCnt > 3){
-   							if(destroyBall(pm.ballAr) == true)
-   								pm.assertCnt = 0;
-   						}
-   						else if(pm.assertCnt > 50){
-   							forceDestroyBall(pm.ballAr);
-   							pm.assertCnt = 0;
-   						}
-   					}
-   				}
    			}
    		}
 
@@ -893,14 +972,39 @@ window.onload = function(){
    		}
 	}
 
-	function calcRad(_player, _ball_group){
+	function calcRad(_player, _ball_group, _hit_target){
    		var _ball = _ball_group.firstChild;
 		var p_x = (_player.x + (_player.width/2.0));
 		var p_y = (_player.y + (_player.height/2.0));
 		var b_x = (_ball_group.x + (_ball.width/2.0));
 		var b_y = (_ball_group.y + (_ball.height/2.0));
-		var t_x = 0;
-		var t_y = p_y;
+
+		var t_x;
+		var t_y;
+
+		var isInverse = true; /* if true => reverse vector */
+
+		switch(_hit_target){
+			case "top_wall":		/* top boarder			  */
+				t_x = 0;
+				t_y = game.height;
+				break;
+			case "left_wall":		/* left boarder			  */
+				t_x = 0;
+				t_y = 0;
+				break;
+			case "right_wall":		/* right boarder		  */
+				t_x = game.width;
+				t_y = 0;
+				isInverse = false;
+				break;
+			case undefined:	/* bottom boarder or else */
+			default:
+				t_x = 0;
+				t_y = p_y;
+				isInverse = false;
+				break;
+		}
 
 		console.log("px = " + p_x + " py = " + p_y);
 		console.log("bx = " + b_x + " by = " + b_y);
@@ -910,6 +1014,10 @@ window.onload = function(){
 		var bb = Math.sqrt(Math.pow((b_x - p_x), 2) + Math.pow((b_y - p_y), 2));
 		var bc = Math.sqrt(Math.pow((t_x - p_x), 2) + Math.pow((t_y - p_y), 2));
 		var cos = a1 / (bb*bc);
+
+		if(isInverse == true){
+			cos = cos * (-1);
+		}
 
 		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
 		console.log("cos = " + cos);
@@ -1001,54 +1109,83 @@ console.log("stage = " + _stage);
 				}
 	
 				if (input.left)  {
+					if(pm.isPitatto == true){
+						pm.p_ratio -= 12;
+					}
 					player.x -= 12;
 				}
+
 				if (input.right) {
+					if(pm.isPitatto == true){
+						pm.p_ratio += 12;
+					}
 					player.x += 12;
 				}
 	
 				if(player.x <= 0) {
+					if(pm.isPitatto == true){
+						pm.p_ratio = 0;
+					}
 					player.x = 0;
 				}
 	
 				if(player.x + player.width > game.width) {
+					if(pm.isPitatto == true){
+						pm.p_ratio = 0;
+					}
 					player.x = game.width - player.width;
 				}
 
    				for(var ii=0; ii<pm.ballAr.length; ii++){
+					var grp = pm.ballAr[ii];
 
    					var _ball = pm.ballAr[ii].lastChild;
    					var _ball_fr = pm.ballAr[ii].firstChild;
 
 					if(player.intersect(_ball) == true){
-						var grp = pm.ballAr[ii];
-						var acos = calcRad(player, grp);
-						var vx = 0;
-						var vy = 0;
-						console.log("acos = " + acos);
-
-						pm.vx_ratio += 10;
-						if(acos <= Math.PI/2){
-							var qt = Math.PI/4;
-							if(acos > qt){
-								vx = (game.width/2) * (acos/Math.PI/2);
-							}
-							else if(acos < qt){
-								vy = player.y * (acos/qt);
-							}
+						if(pm.downP == true){
+							grp.tl.clear();
+							pm.isPitatto = true;
+							pm.downP = false;
 						}
-						else {
-							var qt = Math.PI / 4 * 3;
-							vx = game.width;
-
-							if(acos < qt){
-								vx = game.width * (acos/qt);
-							}
-							else if(acos > qt){
-								vy = player.y * (acos/Math.PI);
-							}
+						else if(pm.upP == true){
+							grp.tl.clear().moveTo(grp.x, 0, 50, enchant.Easing.LINEAR);
+							pm.isPitatto = false;
+							pm.upP = false;
 						}
-						grp.tl.clear().moveTo(vx, vy, 50, enchant.Easing.LINEAR);
+						else if(pm.isPitatto == true){
+							grp.x += pm.p_ratio;
+							pm.p_ratio = 0;
+						}
+						else{
+							var acos = calcRad(player, grp);
+							var vx = 0;
+							var vy = 0;
+							console.log("acos = " + acos);
+
+							pm.vx_ratio += 10;
+							if(acos <= Math.PI/2){
+								var qt = Math.PI/4;
+								if(acos > qt){
+									vx = (game.width/2) * (acos/Math.PI/2);
+								}
+								else if(acos < qt){
+									vy = player.y * (acos/qt);
+								}
+							}
+							else {
+								var qt = Math.PI / 4 * 3;
+								vx = game.width;
+
+								if(acos < qt){
+									vx = game.width * (acos/qt);
+								}
+								else if(acos > qt){
+									vy = player.y * (acos/Math.PI);
+								}
+							}
+							grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
+						}
 					}
 				}
 			}
