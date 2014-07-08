@@ -631,7 +631,7 @@ window.onload = function(){
 		var ii, jj, cnt;
 		var s_x, s_y;
 
-		var start_x = 15;
+		var start_x = 10;
 		var end_x = game.width - 10;
 		var start_y = 10;
 		var end_y = term_line - 10;
@@ -864,7 +864,7 @@ window.onload = function(){
 
 				if(_ball.intersect(blkSp) == true){
    					if(blkSp.color == "#444444"){
-						var acos = calcRad(blkSp, grp);
+						var acos = calcRadBtoB(blkSp, grp);
 						var vx = 0;
 						var vy = 0;
 						var pos_y = 0;
@@ -895,15 +895,16 @@ window.onload = function(){
 						}
 						grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
 
-						/* atode */
-					//	if(++(pm.imWatchdog) >= 20){
-					//		pm.imWatchdog = 0;
-					//	}
+						if(++(pm.imWatchdog) >= 20){
+							grp.tl.clear().moveTo(grp.x+20, grp.y+10, 50, enchant.Easing.LINEAR);
+							pm.imWatchdog = 0;
+						}
    					}
    					else if(pm.yamochiMode == true){
 						// where does yamochi-san go?
    					}
    					else {
+						pm.imWatchdog = 0;
    						destroyBlock(blkSp, _block);
    					}
    					
@@ -918,7 +919,7 @@ window.onload = function(){
 					for(var kk=0; kk<pm.wallGr.childNodes.length; kk++){
 						var wall = pm.wallGr.childNodes[kk];
 						if(_ball.intersect(wall) == true){
-							var acos = calcRad(wall, grp, wall.kind);
+							var acos = calcRadWtoB(wall, grp, wall.kind);
 							var vx = 0;
 							var vy = 0;
 							var pos_y = 0;
@@ -972,7 +973,7 @@ window.onload = function(){
    		}
 	}
 
-	function calcRad(_player, _ball_group, _hit_target){
+	function calcRadBtoB(_player, _ball_group, _hit_target){
    		var _ball = _ball_group.firstChild;
 		var p_x = (_player.x + (_player.width/2.0));
 		var p_y = (_player.y + (_player.height/2.0));
@@ -1018,6 +1019,86 @@ window.onload = function(){
 		if(isInverse == true){
 			cos = cos * (-1);
 		}
+
+		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
+		console.log("cos = " + cos);
+
+		return Math.acos(cos);
+	}
+
+	function calcRadWtoB(_wall, _ball_group, _hit_target){
+   		var _ball = _ball_group.firstChild;
+		var w_x;
+		var w_y;
+		var b_x = (_ball_group.x + (_ball.width/2.0));
+		var b_y = (_ball_group.y + (_ball.height/2.0));
+
+		var t_x;
+		var t_y;
+
+		var isInverse = false; /* if true => reverse vector */
+		switch(_hit_target){
+			case "top_wall":		/* top boarder			  */
+				isInverse = true;
+				w_y = 0;
+				break;
+			case "left_wall":		/* left boarder			  */
+				isInverse = true;
+				t_x = 0;
+				t_y = game.height/4;
+				w_x = 0;
+				w_y = game.height;
+				break;
+			case "right_wall":		/* right boarder		  */
+				t_x = game.width;
+				t_y = game.height/4;
+				w_x = game.width;
+				w_y = 0;
+				break;
+			case undefined:	/* bottom boarder or else */
+			default:
+				t_x = 0;
+				t_y = w_y;
+				break;
+		}
+
+		console.log("wx = " + w_x + " wy = " + w_y);
+		console.log("bx = " + b_x + " by = " + b_y);
+		console.log("tx = " + t_x + " ty = " + t_y);
+
+		var a1 = ((b_x - t_x) * (w_x - t_x)) + ((b_y - t_y) * (w_y - t_y));
+		var bb = Math.sqrt(Math.pow((b_x - t_x), 2) + Math.pow((b_y - t_y), 2));
+		var bc = Math.sqrt(Math.pow((w_x - t_x), 2) + Math.pow((w_y - t_y), 2));
+		var cos = a1 / (bb*bc);
+
+		if(isInverse == true){
+			cos = cos * (-1);
+		}
+
+		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
+		console.log("cos = " + cos);
+
+		return Math.acos(cos);
+	}
+
+	function calcRadPtoB(_player, _ball_group, _hit_target){
+   		var _ball = _ball_group.firstChild;
+		var p_x = (_player.x + (_player.width/2.0));
+		var p_y = (_player.y + (_player.height/2.0));
+		var b_x = (_ball_group.x + (_ball.width/2.0));
+		var b_y = (_ball_group.y + (_ball.height/2.0));
+
+		var t_x = 0;
+		var t_y = p_y;
+
+		console.log("px = " + p_x + " py = " + p_y);
+		console.log("bx = " + b_x + " by = " + b_y);
+		console.log("tx = " + t_x + " ty = " + t_y);
+
+		var a1 = ((b_x - p_x) * (t_x - p_x)) + ((b_y - p_y) * (t_y - p_y));
+		var bb = Math.sqrt(Math.pow((b_x - p_x), 2) + Math.pow((b_y - p_y), 2));
+		var bc = Math.sqrt(Math.pow((t_x - p_x), 2) + Math.pow((t_y - p_y), 2));
+		var cos = a1 / (bb*bc);
 
 		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
 		console.log("cos = " + cos);
@@ -1158,7 +1239,7 @@ console.log("stage = " + _stage);
 							pm.p_ratio = 0;
 						}
 						else{
-							var acos = calcRad(player, grp);
+							var acos = calcRadPtoB(player, grp);
 							var vx = 0;
 							var vy = 0;
 							console.log("acos = " + acos);
@@ -1243,7 +1324,10 @@ console.log("stage = " + _stage);
 
 		scene.addChild(bgSprite);
 		scene.addChild(titleSprite);
-		rainbow(scene, logoSprite.x, logoSprite.y);
+
+		// rainbow disabled
+//		rainbow(scene, logoSprite.x, logoSprite.y);
+
 		scene.addChild(logoSprite);
 
 		scene.addChild(startButton);
