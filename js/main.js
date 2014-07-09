@@ -937,7 +937,8 @@ window.onload = function(){
 								grp.tl.clear().moveTo(obj.x, obj.y, 50, enchant.Easing.LINEAR);
 							}
 							else{
-								pm.watchdog = WATCH_DOG_COUNT * 2;
+								//pm.watchdog = WATCH_DOG_COUNT * 2;
+								pm.watchdog++;
 							}
 						}
 					}
