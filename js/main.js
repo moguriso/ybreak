@@ -963,12 +963,12 @@ window.onload = function(){
    		}
    		else{
    			if(pm.watchdog > WATCH_DOG_COUNT){
-				pm.watchdog = 0;
 				for(var ii=0; ii<pm.ballAr.length; ii++){
 					var grp = pm.ballAr[ii];
 					grp.prevX = _player.x;
 					grp.prevY = _player.y;
 					grp.tl.clear().moveTo(game.width/2, _player.y, 50, enchant.Easing.LINEAR);
+					pm.watchdog = 0;
 				}
    			}
    		}
@@ -1054,9 +1054,9 @@ window.onload = function(){
 	function rotatePosition(_entObj, _degree){
 		var retObj = new Object();
 		var rotate_rad = _degree * Math.PI / 180;  // degree to radian transfer
-		if(rotate_rad < 0){
-			rotate_rad = rotate_rad + (2*Math.PI);
-		}
+		//if(rotate_rad < 0){
+		//	rotate_rad = rotate_rad + (2*Math.PI);
+		//}
 
 		/* calcurate rotated position */
 		retObj.x = (_entObj.x * Math.cos(rotate_rad)) - (_entObj.y * Math.sin(rotate_rad));
@@ -1074,67 +1074,103 @@ window.onload = function(){
 		var current_x = (_ball_group.x + (_ball.width/2.0));
 		var current_y = (_ball_group.y + (_ball.height/2.0));
 
-		prev_y *= -1;
+		prev_y = -1 * prev_y;
 
 		console.log("prev x = " + prev_x + " prev_y = " + prev_y);
 		console.log("current x = " + current_x + " current_y = " + current_y);
 
 		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
 		var rad = calcRadian(prev_x, prev_y, current_x, current_y);
+
+		//if(rad < 0){
+		//	rad = rad + (2*Math.PI);
+		//}
+
 		console.log("dist = " + dist);
 		console.log("rad = " + rad);
 		console.log("degree = " + (rad*360/(2*Math.PI)));
 
-		var border_rad = 5 * Math.PI / 180;
-		if(Math.abs(rad - Math.PI) < border_rad){
-			rad *= 3.0;
-		}
+		//var border_rad = 5 * Math.PI / 180;
+		//if(Math.abs(rad - Math.PI) < border_rad){
+		//	rad *= 3.0;
+		//}
 
 		retObj.x = Math.cos(rad) * dist;
 		retObj.y = Math.sin(rad) * dist;
 
 		console.log("before x = " + retObj.x + " y = " + retObj.y);
 
-		switch(_hit_target){
-			case "right_wall": /* rotate to 180 degree */
-			case "left_wall":  /* rotate to 180 degree */
-				retObj = rotatePosition(retObj, 180);
-				break;
-				/* break;  that needs twice same calculation. plz modify, if possible */
-			case "top_wall": /* rotate to 90 degree */ 
-				retObj = rotatePosition(retObj, 90);
-				break;
-		}
+	//	switch(_hit_target){
+	//		case "right_wall": /* rotate to 180 degree */
+	//		case "left_wall":  /* rotate to 180 degree */
+	//			retObj = rotatePosition(retObj, 180);
+	//			break;
+	//			/* break;  that needs twice same calculation. plz modify, if possible */
+	//		case "top_wall": /* rotate to 90 degree */ 
+	//			retObj = rotatePosition(retObj, 90);
+	//			break;
+	//	}
 
-		console.log("after x = " + retObj.x + " y = " + retObj.y);
+	//	console.log("after x = " + retObj.x + " y = " + retObj.y);
 
 		/* if ball is on this range => ball is stopped spooky position */
 		/* so PROBABLY it has to set extended line distance			   */
-		if(((retObj.x > 0) && (retObj.x < game.width)) &&
-		   ((retObj.y > 0) && (retObj.y < game.height))){
-			var px = current_x;
-			var py = current_y;
-			var qx = retObj.x;
-			var qy = retObj.y;
-			var pos_x = qx - px;
-			var pos_y = qy - py;
-			var dist_pq = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
-			var rx;
-			var ry;
-			for(var ii=0; ii<game.width; ii++){
-				var L = ii;
-				rx = (-L * px + (dist_pq + L) * qx) / dist_pq;
-				ry = (-L * py + (dist_pq + L) * qy) / dist_pq;
-				if(((rx < 0) || (rx > game.width)) ||
-				   ((ry < 0) || (ry > game.height))){
-					retObj.x = rx;
-					retObj.y = ry;
-					break;
-				}
-			}
-		}
+	//	if(((retObj.x > 0) && (retObj.x < game.width)) &&
+	//	   ((retObj.y > 0) && (retObj.y < game.height))){
+	//		var px = current_x;
+	//		var py = current_y;
+	//		var qx = retObj.x;
+	//		var qy = retObj.y;
+	//		var pos_x = qx - px;
+	//		var pos_y = qy - py;
+	//		var dist_pq = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
+	//		var rx;
+	//		var ry;
+	//		for(var ii=0; ii<game.width; ii++){
+	//			var L = ii;
+	//			rx = (-L * px + (dist_pq + L) * qx) / dist_pq;
+	//			ry = (-L * py + (dist_pq + L) * qy) / dist_pq;
+	//			if(((rx < 0) || (rx > game.width)) ||
+	//			   ((ry < 0) || (ry > game.height))){
+	//				retObj.x = rx;
+	//				retObj.y = ry;
+	//				break;
+	//			}
+	//		}
+	//	}
 
 		return retObj;
+	}
+
+	function calcRadWtoB2(_wall, _ball_group, _hit_target){
+   		var _ball = _ball_group.firstChild;
+
+		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
+		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
+		var current_x = (_ball_group.x + (_ball.width/2.0));
+		var current_y = (_ball_group.y + (_ball.height/2.0));
+
+		var w_x = current_x;
+		var w_y = current_y;
+		var b_x = prev_x;
+		var b_y = prev_y;
+
+		var t_x = w_x;
+		var t_y = b_y;
+
+		console.log("px = " + p_x + " py = " + p_y);
+		console.log("bx = " + b_x + " by = " + b_y);
+		console.log("tx = " + t_x + " ty = " + t_y);
+
+		var a1 = ((b_x - p_x) * (t_x - p_x)) + ((b_y - p_y) * (t_y - p_y));
+		var bb = Math.sqrt(Math.pow((b_x - p_x), 2) + Math.pow((b_y - p_y), 2));
+		var bc = Math.sqrt(Math.pow((t_x - p_x), 2) + Math.pow((t_y - p_y), 2));
+		var cos = a1 / (bb*bc);
+
+		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
+		console.log("cos = " + cos);
+
+		return Math.acos(cos);
 	}
 
 	function calcRadPtoB(_player, _ball_group, _hit_target){
