@@ -75,6 +75,8 @@ window.onload = function(){
 			var _vx_ratio = 0;
 			var _vy_ratio = 0;
 			var _pitatto_ratio = 0;
+			var _mouseX = 0;
+			var _mouseY = 0;
 
     		return {
 				// public method
@@ -115,6 +117,22 @@ window.onload = function(){
         		    },
         		    set: function(cnt) {
 						this._imBlockCount = cnt;
+        		    }
+        		},
+        		mouseX : {
+        		    get: function() {
+        		        return this._mouseX;
+        		    },
+        		    set: function(cnt) {
+						this._mouseX= is;
+        		    }
+        		},
+        		mouseY : {
+        		    get: function() {
+        		        return this._mouseY;
+        		    },
+        		    set: function(cnt) {
+						this._mouseY= is;
         		    }
         		},
         		upP : {
@@ -439,24 +457,24 @@ window.onload = function(){
 		}
 	}
 
-	function setPlayerCallback(_player, _ball_group){
-		_player.addEventListener(Event.TOUCH_MOVE, function(e) {
-			var tmp_x = e.x;
-			var tmp_y = e.y;
-			var dest_x = tmp_x;
+	function setPlayerCallback(_player){
 
-			var ball_front = _ball_group.firstChild;
-			var ball_back = _ball_group.lastChild;
+		window.document.onmousemove = function(e){
+			var pm = Param.getInstance();
 
-			_player.x = dest_x;
+			pm.mouseX = e.pageX / game.scale;
+			pm.mouseY = e.pageY / game.scale;
 
-			if(_player.x >= game.width - ball_front.width - 5){
-				_player.x = game.width - ball_front.width - 5;
+			//console.log("mx = " + pm.mouseX + " my = " + pm.mouseY);
+
+			_player.x = parseInt(pm.mouseX) - Math.floor(_player.width);
+			if(_player.x >= game.width - _player.width - 5){
+				_player.x = game.width - _player.width - 5;
 			}
 			else if(_player.x <= 0 + 5){
 				_player.x = 5;
 			}
-		});
+		};
 	}
 
 	function buildSquare(_player, _color, _width, _height, _x, _y){
@@ -886,15 +904,15 @@ window.onload = function(){
 						}
 						if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
 						   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-							grp.prevX = _player.x;
-							grp.prevY = _player.y;
+							grp.prevX = grp.x;
+							grp.prevY = grp.y;
 							pm.watchdog = 0;
 							console.log("update prev");
+							grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
 						}
 						else{
 							++pm.watchdog;
 						}
-						grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
 
 						if(++(pm.imWatchdog) >= 20){
 							grp.tl.clear().moveTo(grp.x+20, grp.y+10, 50, enchant.Easing.LINEAR);
@@ -920,24 +938,18 @@ window.onload = function(){
 					for(var kk=0; kk<pm.wallGr.childNodes.length; kk++){
 						var wall = pm.wallGr.childNodes[kk];
 						if(_ball.intersect(wall) == true){
-							var obj = calcRadWtoB(wall, grp, wall.kind);
-
-							if((obj.x != 0) || (obj.y != 0)){
-								console.log("calc x = " + obj.x + " calc y = " + obj.y);
-								if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
-								   (Math.floor(grp.prevY) != Math.floor(grp.y))){
+							if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
+							   (Math.floor(grp.prevY) != Math.floor(grp.y))){
+								var obj = calcRadWtoB(wall, grp, wall.kind);
+								if((obj.x != 0) || (obj.y != 0)){
 									grp.prevX = grp.x;
 									grp.prevY = grp.y;
 									pm.watchdog = 0;
 									console.log("update prev");
+									grp.tl.clear().moveTo(obj.x, obj.y, 50, enchant.Easing.LINEAR);
 								}
-								else{
-									++pm.watchdog;
-								}
-								grp.tl.clear().moveTo(obj.x, obj.y, 50, enchant.Easing.LINEAR);
 							}
 							else{
-								//pm.watchdog = WATCH_DOG_COUNT * 2;
 								pm.watchdog++;
 							}
 						}
@@ -1021,6 +1033,38 @@ window.onload = function(){
 		return Math.acos(cos);
 	}
 
+	function calcDistance(_src_x, _src_y, _dst_x, _dst_y){
+		var pos_x = _dst_x - _src_x;
+		var pos_y = -1 * (_dst_y - _src_y);
+
+		var ret_distance = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
+
+		return ret_distance;
+	}
+
+	function calcRadian(_src_x, _src_y, _dst_x, _dst_y){
+		var pos_x = _dst_x - _src_x;
+		var pos_y = _dst_y - _src_y;
+
+		var ret_radian = Math.atan2(pos_y, pos_x);
+
+		return ret_radian;
+	}
+
+	function rotatePosition(_entObj, _degree){
+		var retObj = new Object();
+		var rotate_rad = _degree * Math.PI / 180;  // degree to radian transfer
+		if(rotate_rad < 0){
+			rotate_rad = rotate_rad + (2*Math.PI);
+		}
+
+		/* calcurate rotated position */
+		retObj.x = (_entObj.x * Math.cos(rotate_rad)) - (_entObj.y * Math.sin(rotate_rad));
+		retObj.y = (_entObj.x * Math.sin(rotate_rad)) + (_entObj.y * Math.cos(rotate_rad));
+
+		return retObj;
+	}
+
 	function calcRadWtoB(_wall, _ball_group, _hit_target){
 		var retObj = new Object();
    		var _ball = _ball_group.firstChild;
@@ -1030,50 +1074,42 @@ window.onload = function(){
 		var current_x = (_ball_group.x + (_ball.width/2.0));
 		var current_y = (_ball_group.y + (_ball.height/2.0));
 
+		prev_y *= -1;
+
 		console.log("prev x = " + prev_x + " prev_y = " + prev_y);
 		console.log("current x = " + current_x + " current_y = " + current_y);
 
-		var pos_x = current_x - prev_x;
-		var pos_y = current_y - prev_y;
-
-		if(_hit_target == "left_wall"){
-			pos_x = Math.abs(pos_x);
-			pos_y = Math.abs(pos_y);
-		}
-
-		var dist = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
-		var border_rad = 5 * Math.PI / 180;
-		var rad = Math.atan2(pos_y, pos_x);
-
-		if(Math.abs(rad - Math.PI) < 0.01){
-			rad = -45 * Math.PI / 180;
-		}
-
+		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
+		var rad = calcRadian(prev_x, prev_y, current_x, current_y);
 		console.log("dist = " + dist);
 		console.log("rad = " + rad);
+		console.log("degree = " + (rad*360/(2*Math.PI)));
+
+		var border_rad = 5 * Math.PI / 180;
+		if(Math.abs(rad - Math.PI) < border_rad){
+			rad *= 3.0;
+		}
 
 		retObj.x = Math.cos(rad) * dist;
 		retObj.y = Math.sin(rad) * dist;
 
-		var tm_x;
-		var tm_y;
-		var rotate_rad = 180 * Math.PI / 180;
+		console.log("before x = " + retObj.x + " y = " + retObj.y);
+
 		switch(_hit_target){
-			case "left_wall": /* rotate to 180do*/
-				tm_x = (retObj.x * Math.cos(rotate_rad)) - (retObj.y * Math.sin(rotate_rad));
-				tm_y = (retObj.x * Math.sin(rotate_rad)) + (retObj.y * Math.cos(rotate_rad));
-				retObj.x = tm_x;
-				retObj.y = tm_y;
+			case "right_wall": /* rotate to 180 degree */
+			case "left_wall":  /* rotate to 180 degree */
+				retObj = rotatePosition(retObj, 180);
+				break;
 				/* break;  that needs twice same calculation. plz modify, if possible */
-			case "top_wall": /* rotate to 90do*/ 
-				tm_x = (retObj.x * Math.cos(rotate_rad)) - (retObj.y * Math.sin(rotate_rad));
-				tm_y = (retObj.x * Math.sin(rotate_rad)) + (retObj.y * Math.cos(rotate_rad));
-				retObj.x = tm_x;
-				retObj.y = tm_y;
+			case "top_wall": /* rotate to 90 degree */ 
+				retObj = rotatePosition(retObj, 90);
 				break;
 		}
 
+		console.log("after x = " + retObj.x + " y = " + retObj.y);
+
 		/* if ball is on this range => ball is stopped spooky position */
+		/* so PROBABLY it has to set extended line distance			   */
 		if(((retObj.x > 0) && (retObj.x < game.width)) &&
 		   ((retObj.y > 0) && (retObj.y < game.height))){
 			var px = current_x;
@@ -1157,7 +1193,7 @@ console.log("stage = " + _stage);
 		scene.addChild(ball_group);
 		pm.ballAr.push(ball_group);
 
-		setPlayerCallback(player, ball_group);
+		setPlayerCallback(player);
 
 		buildWall(player, scene);
 
@@ -1179,9 +1215,19 @@ console.log("stage = " + _stage);
 				}
 
 				if(input.z){
+					var pm = Param.getInstance();
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp = pm.ballAr[ii];
+						grp.tl.clear();
+					}
 				}
 
 				if(input.r){
+					var pm = Param.getInstance();
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp = pm.ballAr[ii];
+						grp.tl.clear().moveTo(-1, -1, 50, enchant.Easing.LINEAR);
+					}
 				}
 
 				if(input.l){
@@ -1211,16 +1257,16 @@ console.log("stage = " + _stage);
 	
 				if (input.left)  {
 					if(pm.isPitatto == true){
-						pm.p_ratio -= 12;
+						pm.p_ratio -= 5;
 					}
-					player.x -= 12;
+					player.x -= 5;
 				}
 
 				if (input.right) {
 					if(pm.isPitatto == true){
-						pm.p_ratio += 12;
+						pm.p_ratio += 5;
 					}
-					player.x += 12;
+					player.x += 5;
 				}
 	
 				if(player.x <= 0) {
@@ -1264,9 +1310,6 @@ console.log("stage = " + _stage);
 							var vy = 0;
 							console.log("acos = " + acos);
 
-							grp.prevX = grp.x;
-							grp.prevY = grp.y;
-
 							pm.vx_ratio += 10;
 							if(acos <= Math.PI/2){
 								var qt = Math.PI/4;
@@ -1288,7 +1331,16 @@ console.log("stage = " + _stage);
 									vy = player.y * (acos/Math.PI);
 								}
 							}
-							grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
+							if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
+							   (Math.floor(grp.prevY) != Math.floor(grp.y))){
+								grp.prevX = grp.x;
+								grp.prevY = grp.y;
+								pm.watchdog = 0;
+								grp.tl.clear().moveTo(vx-2, vy, 50, enchant.Easing.LINEAR);
+							}	
+							else{
+								pm.watchdog++;
+							}
 						}
 					}
 				}
