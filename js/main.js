@@ -707,6 +707,8 @@ window.onload = function(){
 				tmp_sprite.kind = "block";
 
 				sprite.push(tmp_sprite);
+				sprite.x = pos_x;
+				sprite.y = pos_y;
 				var last_pos = sprite.length - 1; 
 				pm.blkGr.addChild(sprite[last_pos]);
 			}
@@ -869,7 +871,6 @@ window.onload = function(){
 
 			for(var jj=0; jj<_block.length; jj++){
 				var blkSp = _block[jj];
-				var touch_ratio = 35;
 
 				if(_ball.intersect(blkSp) == true){
    					if(blkSp.color == "#444444"){
@@ -880,6 +881,14 @@ window.onload = function(){
 
 						if(blkSp.y < grp.y){
 							pos_y = game.height;
+							if((blkSp.y+(blkSp.height/2)) < grp.y){
+								grp.y = blkSp.y + _ball.height + 1;
+							}
+						}
+						else{
+							if((blkSp.y+(blkSp.height/2)) > grp.y){
+								grp.y = blkSp.y - _ball.height - 1;
+							}
 						}
 
 						if(acos <= Math.PI/2){
@@ -912,6 +921,7 @@ window.onload = function(){
 						}
 						else{
 							++pm.watchdog;
+							console.log("hoge(4): watchdog update");
 						}
 
 						if(++(pm.imWatchdog) >= 20){
@@ -938,19 +948,38 @@ window.onload = function(){
 					for(var kk=0; kk<pm.wallGr.childNodes.length; kk++){
 						var wall = pm.wallGr.childNodes[kk];
 						if(_ball.intersect(wall) == true){
+
 							if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
 							   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-								var obj = calcRadWtoB(wall, grp, wall.kind);
+
+								var obj = calcRadWtoB2(wall, grp, wall.kind);
+								console.log("hoge: obj x = " + obj.x + " y = " + obj.y);
+
 								if((obj.x != 0) || (obj.y != 0)){
 									grp.prevX = grp.x;
 									grp.prevY = grp.y;
+
+									switch(wall.kind){
+										case "top_wall":
+											grp.y = 2; /* tentative mergin */
+											break;
+										case "left_wall":
+											grp.x = 2; /* tentative mergin */
+											break;
+										case "right_wall":
+											grp.x = game.width - 1 - _ball.width - 2; /* tentative mergin */
+											break;
+									}
+
 									pm.watchdog = 0;
 									console.log("update prev");
 									grp.tl.clear().moveTo(obj.x, obj.y, 50, enchant.Easing.LINEAR);
+									console.log("hoge1: obj x = " + obj.x + " y = " + obj.y);
 								}
 							}
 							else{
 								pm.watchdog++;
+								console.log("hoge2: watchdog in");
 							}
 						}
 					}
@@ -1082,13 +1111,20 @@ window.onload = function(){
 		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
 		var rad = calcRadian(prev_x, prev_y, current_x, current_y);
 
+		console.log("dist = " + dist);
+
+		// calcurate refrection rad
+		console.log("base rad = " + rad);
+		console.log("base degree = " + (rad*360/(2*Math.PI)));
+
+		rad = (Math.PI) - rad;
+
+		console.log("refrection rad = " + rad);
+		console.log("refrection degree = " + (rad*360/(2*Math.PI)));
+
 		//if(rad < 0){
 		//	rad = rad + (2*Math.PI);
 		//}
-
-		console.log("dist = " + dist);
-		console.log("rad = " + rad);
-		console.log("degree = " + (rad*360/(2*Math.PI)));
 
 		//var border_rad = 5 * Math.PI / 180;
 		//if(Math.abs(rad - Math.PI) < border_rad){
@@ -1143,34 +1179,99 @@ window.onload = function(){
 	}
 
 	function calcRadWtoB2(_wall, _ball_group, _hit_target){
-   		var _ball = _ball_group.firstChild;
+		var retObj = new Object();
 
+   		var _ball = _ball_group.firstChild;
 		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
 		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
 		var current_x = (_ball_group.x + (_ball.width/2.0));
 		var current_y = (_ball_group.y + (_ball.height/2.0));
 
-		var w_x = current_x;
-		var w_y = current_y;
+		var w_x = _wall.x;
+		//var w_x = (_ball_group.x + (_ball.width/2.0));
+		var w_y = (_ball_group.y + (_ball.height/2.0));
 		var b_x = prev_x;
 		var b_y = prev_y;
+		var t_x = _wall.x;
+		var t_y = 0;
 
-		var t_x = w_x;
-		var t_y = b_y;
+		//if(_hit_target == "top_wall"){
+		//	w_x = (_ball_group.x + (_ball.width/2.0));
+		//	w_y = 0;
+		//}
+		//prev_y *= -1;
+		//current_y *= -1;
+		//w_y *= -1;
+		//b_y *= -1;
+		//t_y *= -1;
 
-		console.log("px = " + p_x + " py = " + p_y);
+		console.log("wx = " + w_x + " wy = " + w_y);
 		console.log("bx = " + b_x + " by = " + b_y);
 		console.log("tx = " + t_x + " ty = " + t_y);
 
-		var a1 = ((b_x - p_x) * (t_x - p_x)) + ((b_y - p_y) * (t_y - p_y));
-		var bb = Math.sqrt(Math.pow((b_x - p_x), 2) + Math.pow((b_y - p_y), 2));
-		var bc = Math.sqrt(Math.pow((t_x - p_x), 2) + Math.pow((t_y - p_y), 2));
+		var a1 = ((b_x - w_x) * (t_x - w_x)) + ((b_y - w_y) * (t_y - w_y));
+		var bb = Math.sqrt(Math.pow((b_x - w_x), 2) + Math.pow((b_y - w_y), 2));
+		var bc = Math.sqrt(Math.pow((t_x - w_x), 2) + Math.pow((t_y - w_y), 2));
 		var cos = a1 / (bb*bc);
+		var acos = Math.acos(cos);
 
-		console.log("a1 = " + a1 + " bb = " + bb + " bc = " + bc );
-		console.log("cos = " + cos);
+		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
+		var rad = acos;
 
-		return Math.acos(cos);
+		console.log("hoge: dist = " + dist);
+
+		retObj.x = Math.cos(rad) * dist;
+		retObj.y = Math.sin(rad) * dist;
+
+		console.log("be hoge: x = " + retObj.x + " y = " + retObj.y);
+
+		switch(_hit_target){
+			case "top_wall":		/* top boarder			  */
+				retObj.x = retObj.x * (-1);
+				break;
+			case "left_wall":		/* left boarder			  */
+				retObj.x = retObj.x * (-1);
+			case "right_wall":		/* right boarder		  */
+				retObj.y = retObj.y * (-1);
+				break;
+			case undefined:	/* bottom boarder or else */
+			default:
+				/* nothing to do ... probably. */
+				break;
+		}
+		console.log("af hoge: x = " + retObj.x + " y = " + retObj.y);
+
+		retObj = rotatePosition(retObj, 45);
+
+		console.log("rot af hoge: x = " + retObj.x + " y = " + retObj.y);
+
+		if(((retObj.x > -1) && (retObj.x < game.width)) &&
+		   ((retObj.y > -1) && (retObj.y < game.height))){
+			var px = current_x;
+			var py = current_y;
+			var qx = retObj.x;
+			var qy = retObj.y;
+			var pos_x = qx - px;
+			var pos_y = qy - py;
+			var dist_pq = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
+			var rx;
+			var ry;
+			console.log("re-calc position");
+			for(var ii=0; ii<9999; ii++){
+				var L = ii;
+				rx = (-L * px + (dist_pq + L) * qx) / dist_pq;
+				ry = (-L * py + (dist_pq + L) * qy) / dist_pq;
+				if(((rx < -3) || (rx > game.width+3)) ||
+				   ((ry < -3) || (ry > game.height+3))){
+					retObj.x = rx;
+					retObj.y = ry;
+					break;
+				}
+			}
+		}
+		console.log("af2 hoge: x = " + retObj.x + " y = " + retObj.y);
+
+		return retObj;
 	}
 
 	function calcRadPtoB(_player, _ball_group, _hit_target){
@@ -1326,6 +1427,7 @@ console.log("stage = " + _stage);
    					var _ball_fr = pm.ballAr[ii].firstChild;
 
 					if(player.intersect(_ball) == true){
+						grp.y = player.y - _ball.height - 1;
 						if(pm.downP == true){
 							grp.tl.clear();
 							pm.isPitatto = true;
@@ -1376,6 +1478,7 @@ console.log("stage = " + _stage);
 							}	
 							else{
 								pm.watchdog++;
+								console.log("hoge3 :watchdog");
 							}
 						}
 					}
