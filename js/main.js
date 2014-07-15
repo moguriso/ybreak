@@ -402,6 +402,8 @@ window.onload = function(){
 		sprite.image = surface;
 		sprite.moveTo(s_x, s_y);
 		sprite.kind = "player";
+		sprite_prevX = s_x;
+		sprite_prevY = s_y;
 
 		console.log("player x = " + s_x + " player y = " + s_y);
 
@@ -467,12 +469,21 @@ window.onload = function(){
 
 			//console.log("mx = " + pm.mouseX + " my = " + pm.mouseY);
 
-			_player.x = parseInt(pm.mouseX) - Math.floor(_player.width);
+			_player.prevX = _player.x;
+			_player.x = parseInt(pm.mouseX) - (_player.width/2);
 			if(_player.x >= game.width - _player.width - 5){
 				_player.x = game.width - _player.width - 5;
 			}
 			else if(_player.x <= 0 + 5){
 				_player.x = 5;
+			}
+
+			if(pm.isPitatto == true){
+				var move_ratio = (_player.x - _player.prevX);
+   				for(var ii=0; ii<pm.ballAr.length; ii++){
+					var grp = pm.ballAr[ii];
+					grp.x += move_ratio;
+				}
 			}
 		};
 	}
@@ -489,13 +500,15 @@ window.onload = function(){
 		surface.context.fillRect(0, 0, surface.width, surface.height);
 
 		if(_x == undefined){
-			s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
+			//s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
+			s_x = _player.x + _player.width/2 - surface.width/2;
 		}
 		else{
 			s_x = _x;
 		}
 		if(_y == undefined){
-			s_y = 150;
+			//s_y = 150;
+			s_y = _player.y - surface.height;
 		}
 		else{
 			s_y = _y;
@@ -536,13 +549,15 @@ window.onload = function(){
 		surface.context.fill();
 
 		if(_x == undefined){
-			s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
+			//s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
+			s_x = _player.x + _player.width/2 - surface.width/2;
 		}
 		else{
 			s_x = _x;
 		}
 		if(_y == undefined){
-			s_y = 150;
+			//s_y = 150;
+			s_y = _player.y - surface.height;
 		}
 		else{
 			s_y = _y;
@@ -1195,6 +1210,13 @@ window.onload = function(){
 		var t_x = _wall.x;
 		var t_y = 0;
 
+		if(isNaN(b_x) || isNaN(b_y)){
+			b_x = game.width/2;
+			b_y = game.height;
+			prev_x = b_x;
+			prev_y = b_y;
+		}
+
 		//if(_hit_target == "top_wall"){
 		//	w_x = (_ball_group.x + (_ball.width/2.0));
 		//	w_y = 0;
@@ -1323,8 +1345,9 @@ console.log("stage = " + _stage);
 			ball_group = buildBall(player, "red", 50/2); 
 		}
 		else{
-			ball_group = buildSquare(player, "red", 22, 12); 
-			ball_group.tl.moveTo(game.width, game.height, FIRST_SPEED, enchant.Easing.LINEAR);
+			ball_group		= buildSquare(player, "red", 22, 12); 
+			pm.isPitatto	= true;
+			//ball_group.tl.moveTo(game.width, game.height, FIRST_SPEED, enchant.Easing.LINEAR);
 		}
 
 		scene.addChild(ball_group);
@@ -1345,7 +1368,13 @@ console.log("stage = " + _stage);
 			{
 				/* focus on player */
 				if (input.up)    {
-					pm.upP = true;
+					if(pm.isPitatto == true){
+						for(var ii=0; ii<pm.ballAr.length; ii++){
+							var grp = pm.ballAr[ii];
+							grp.tl.clear().moveTo(grp.x, 0, 50, enchant.Easing.LINEAR);
+						}
+						pm.isPitatto = false;
+					}
 				}
 
 				if(input.g){
@@ -1426,6 +1455,11 @@ console.log("stage = " + _stage);
    					var _ball = pm.ballAr[ii].lastChild;
    					var _ball_fr = pm.ballAr[ii].firstChild;
 
+					if(pm.isPitatto == true){
+						grp.x += pm.p_ratio;
+						pm.p_ratio = 0;
+					}
+
 					if(player.intersect(_ball) == true){
 						grp.y = player.y - _ball.height - 1;
 						if(pm.downP == true){
@@ -1433,22 +1467,12 @@ console.log("stage = " + _stage);
 							pm.isPitatto = true;
 							pm.downP = false;
 						}
-						else if(pm.upP == true){
-							grp.tl.clear().moveTo(grp.x, 0, 50, enchant.Easing.LINEAR);
-							pm.isPitatto = false;
-							pm.upP = false;
-						}
-						else if(pm.isPitatto == true){
-							grp.x += pm.p_ratio;
-							pm.p_ratio = 0;
-						}
 						else{
 							var acos = calcRadPtoB(player, grp);
 							var vx = 0;
 							var vy = 0;
 							console.log("acos = " + acos);
 
-							pm.vx_ratio += 10;
 							if(acos <= Math.PI/2){
 								var qt = Math.PI/4;
 								if(acos > qt){
