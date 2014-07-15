@@ -460,14 +460,25 @@ window.onload = function(){
 	}
 
 	function setPlayerCallback(_player){
+		var pm = Param.getInstance();
+
+		window.document.onmousedown = function(e){
+			if(pm.isPitatto == true){
+				for(var ii=0; ii<pm.ballAr.length; ii++){
+					var grp = pm.ballAr[ii];
+					grp.tl.clear().moveTo(grp.x, 0, 50, enchant.Easing.LINEAR);
+				}
+				pm.isPitatto = false;
+			}
+			else{
+				pm.downP = true;
+				console.log("downP = " + pm.downP);
+			}
+		}
 
 		window.document.onmousemove = function(e){
-			var pm = Param.getInstance();
-
 			pm.mouseX = e.pageX / game.scale;
 			pm.mouseY = e.pageY / game.scale;
-
-			//console.log("mx = " + pm.mouseX + " my = " + pm.mouseY);
 
 			_player.prevX = _player.x;
 			_player.x = parseInt(pm.mouseX) - (_player.width/2);
@@ -500,14 +511,12 @@ window.onload = function(){
 		surface.context.fillRect(0, 0, surface.width, surface.height);
 
 		if(_x == undefined){
-			//s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
 			s_x = _player.x + _player.width/2 - surface.width/2;
 		}
 		else{
 			s_x = _x;
 		}
 		if(_y == undefined){
-			//s_y = 150;
 			s_y = _player.y - surface.height;
 		}
 		else{
@@ -549,14 +558,12 @@ window.onload = function(){
 		surface.context.fill();
 
 		if(_x == undefined){
-			//s_x = Math.floor(_player.x) + Math.floor(_player.width/2) - Math.floor(surface.width/2);
 			s_x = _player.x + _player.width/2 - surface.width/2;
 		}
 		else{
 			s_x = _x;
 		}
 		if(_y == undefined){
-			//s_y = 150;
 			s_y = _player.y - surface.height;
 		}
 		else{
@@ -967,13 +974,10 @@ window.onload = function(){
 							if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
 							   (Math.floor(grp.prevY) != Math.floor(grp.y))){
 
-								var obj = calcRadWtoB2(wall, grp, wall.kind);
+								var obj = calcRadWtoB(wall, grp, wall.kind);
 								console.log("hoge: obj x = " + obj.x + " y = " + obj.y);
 
 								if((obj.x != 0) || (obj.y != 0)){
-									grp.prevX = grp.x;
-									grp.prevY = grp.y;
-
 									switch(wall.kind){
 										case "top_wall":
 											grp.y = 2; /* tentative mergin */
@@ -985,6 +989,8 @@ window.onload = function(){
 											grp.x = game.width - 1 - _ball.width - 2; /* tentative mergin */
 											break;
 									}
+									grp.prevX = grp.x;
+									grp.prevY = grp.y;
 
 									pm.watchdog = 0;
 									console.log("update prev");
@@ -1098,9 +1104,6 @@ window.onload = function(){
 	function rotatePosition(_entObj, _degree){
 		var retObj = new Object();
 		var rotate_rad = _degree * Math.PI / 180;  // degree to radian transfer
-		//if(rotate_rad < 0){
-		//	rotate_rad = rotate_rad + (2*Math.PI);
-		//}
 
 		/* calcurate rotated position */
 		retObj.x = (_entObj.x * Math.cos(rotate_rad)) - (_entObj.y * Math.sin(rotate_rad));
@@ -1111,105 +1114,23 @@ window.onload = function(){
 
 	function calcRadWtoB(_wall, _ball_group, _hit_target){
 		var retObj = new Object();
-   		var _ball = _ball_group.firstChild;
-
-		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
-		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
-		var current_x = (_ball_group.x + (_ball.width/2.0));
-		var current_y = (_ball_group.y + (_ball.height/2.0));
-
-		prev_y = -1 * prev_y;
-
-		console.log("prev x = " + prev_x + " prev_y = " + prev_y);
-		console.log("current x = " + current_x + " current_y = " + current_y);
-
-		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
-		var rad = calcRadian(prev_x, prev_y, current_x, current_y);
-
-		console.log("dist = " + dist);
-
-		// calcurate refrection rad
-		console.log("base rad = " + rad);
-		console.log("base degree = " + (rad*360/(2*Math.PI)));
-
-		rad = (Math.PI) - rad;
-
-		console.log("refrection rad = " + rad);
-		console.log("refrection degree = " + (rad*360/(2*Math.PI)));
-
-		//if(rad < 0){
-		//	rad = rad + (2*Math.PI);
-		//}
-
-		//var border_rad = 5 * Math.PI / 180;
-		//if(Math.abs(rad - Math.PI) < border_rad){
-		//	rad *= 3.0;
-		//}
-
-		retObj.x = Math.cos(rad) * dist;
-		retObj.y = Math.sin(rad) * dist;
-
-		console.log("before x = " + retObj.x + " y = " + retObj.y);
-
-	//	switch(_hit_target){
-	//		case "right_wall": /* rotate to 180 degree */
-	//		case "left_wall":  /* rotate to 180 degree */
-	//			retObj = rotatePosition(retObj, 180);
-	//			break;
-	//			/* break;  that needs twice same calculation. plz modify, if possible */
-	//		case "top_wall": /* rotate to 90 degree */ 
-	//			retObj = rotatePosition(retObj, 90);
-	//			break;
-	//	}
-
-	//	console.log("after x = " + retObj.x + " y = " + retObj.y);
-
-		/* if ball is on this range => ball is stopped spooky position */
-		/* so PROBABLY it has to set extended line distance			   */
-	//	if(((retObj.x > 0) && (retObj.x < game.width)) &&
-	//	   ((retObj.y > 0) && (retObj.y < game.height))){
-	//		var px = current_x;
-	//		var py = current_y;
-	//		var qx = retObj.x;
-	//		var qy = retObj.y;
-	//		var pos_x = qx - px;
-	//		var pos_y = qy - py;
-	//		var dist_pq = Math.sqrt(Math.pow(pos_x, 2) + Math.pow(pos_y, 2));
-	//		var rx;
-	//		var ry;
-	//		for(var ii=0; ii<game.width; ii++){
-	//			var L = ii;
-	//			rx = (-L * px + (dist_pq + L) * qx) / dist_pq;
-	//			ry = (-L * py + (dist_pq + L) * qy) / dist_pq;
-	//			if(((rx < 0) || (rx > game.width)) ||
-	//			   ((ry < 0) || (ry > game.height))){
-	//				retObj.x = rx;
-	//				retObj.y = ry;
-	//				break;
-	//			}
-	//		}
-	//	}
-
-		return retObj;
-	}
-
-	function calcRadWtoB2(_wall, _ball_group, _hit_target){
-		var retObj = new Object();
 
    		var _ball = _ball_group.firstChild;
 		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
 		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
 		var current_x = (_ball_group.x + (_ball.width/2.0));
 		var current_y = (_ball_group.y + (_ball.height/2.0));
+		var isUpDown = false;
 
 		var w_x = _wall.x;
-		//var w_x = (_ball_group.x + (_ball.width/2.0));
 		var w_y = (_ball_group.y + (_ball.height/2.0));
 		var b_x = prev_x;
 		var b_y = prev_y;
 		var t_x = _wall.x;
 		var t_y = 0;
 
+		/* if invalid value of previous position	*/
+		/* dummy position (center x / bottom y) set	*/
 		if(isNaN(b_x) || isNaN(b_y)){
 			b_x = game.width/2;
 			b_y = game.height;
@@ -1217,29 +1138,24 @@ window.onload = function(){
 			prev_y = b_y;
 		}
 
-		//if(_hit_target == "top_wall"){
-		//	w_x = (_ball_group.x + (_ball.width/2.0));
-		//	w_y = 0;
-		//}
-		//prev_y *= -1;
-		//current_y *= -1;
-		//w_y *= -1;
-		//b_y *= -1;
-		//t_y *= -1;
+		if(prev_y > current_y){
+			isUpDown = true;
+		}
 
 		console.log("wx = " + w_x + " wy = " + w_y);
 		console.log("bx = " + b_x + " by = " + b_y);
 		console.log("tx = " + t_x + " ty = " + t_y);
 
+		/*	calculate radian from 3 points									*/
+		/*	if you'd like to know that formula ... plz google it yourself	*/
 		var a1 = ((b_x - w_x) * (t_x - w_x)) + ((b_y - w_y) * (t_y - w_y));
 		var bb = Math.sqrt(Math.pow((b_x - w_x), 2) + Math.pow((b_y - w_y), 2));
 		var bc = Math.sqrt(Math.pow((t_x - w_x), 2) + Math.pow((t_y - w_y), 2));
 		var cos = a1 / (bb*bc);
-		var acos = Math.acos(cos);
+		var rad = Math.acos(cos);
+		var deg = rad/Math.PI*180;
 
 		var dist = calcDistance(prev_x, prev_y, current_x, current_y);
-		var rad = acos;
-
 		console.log("hoge: dist = " + dist);
 
 		retObj.x = Math.cos(rad) * dist;
@@ -1250,22 +1166,33 @@ window.onload = function(){
 		switch(_hit_target){
 			case "top_wall":		/* top boarder			  */
 				retObj.x = retObj.x * (-1);
+				console.log("af hoge: x = " + retObj.x + " y = " + retObj.y);
+				retObj = rotatePosition(retObj, 90);
+				console.log("rot af hoge: x = " + retObj.x + " y = " + retObj.y);
 				break;
 			case "left_wall":		/* left boarder			  */
-				retObj.x = retObj.x * (-1);
+				console.log("af hoge: x = " + retObj.x + " y = " + retObj.y + " deg = " + deg);
+				retObj = rotatePosition(retObj, 270);
+				console.log("magemage x = " + retObj.x + " y = " + retObj.y);
+				if(isUpDown == false){
+					retObj = rotatePosition(retObj, 90);
+					console.log("magemage2 x = " + retObj.x + " y = " + retObj.y);
+					//retObj.y = retObj.y * (-1);
+					//console.log("magemage2b x = " + retObj.x + " y = " + retObj.y);
+				}
+				console.log("rot af hoge: x = " + retObj.x + " y = " + retObj.y);
+				break;
 			case "right_wall":		/* right boarder		  */
 				retObj.y = retObj.y * (-1);
+				console.log("af hoge: x = " + retObj.x + " y = " + retObj.y);
+				retObj = rotatePosition(retObj, 45);
+				console.log("rot af hoge: x = " + retObj.x + " y = " + retObj.y);
 				break;
 			case undefined:	/* bottom boarder or else */
 			default:
 				/* nothing to do ... probably. */
 				break;
 		}
-		console.log("af hoge: x = " + retObj.x + " y = " + retObj.y);
-
-		retObj = rotatePosition(retObj, 45);
-
-		console.log("rot af hoge: x = " + retObj.x + " y = " + retObj.y);
 
 		if(((retObj.x > -1) && (retObj.x < game.width)) &&
 		   ((retObj.y > -1) && (retObj.y < game.height))){
@@ -1451,7 +1378,6 @@ console.log("stage = " + _stage);
 
    				for(var ii=0; ii<pm.ballAr.length; ii++){
 					var grp = pm.ballAr[ii];
-
    					var _ball = pm.ballAr[ii].lastChild;
    					var _ball_fr = pm.ballAr[ii].firstChild;
 
