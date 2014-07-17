@@ -24,6 +24,7 @@ window.onload = function(){
 	game.keybind( 83, 's' );
 	game.keybind( 65, 'a' );
 
+
 	function initialize_params(){
 		var pm = Param.getInstance();
 
@@ -43,7 +44,60 @@ window.onload = function(){
 		pm.downP		= false;
 		pm.isPitatto	= false;
 		pm.bombMode		= false;
+		pm.enable		= true;
 	}
+
+	var User = (function() {
+
+		var instance;
+
+		function init(){
+			// private method sample
+			function publicMethodxxx() {
+			};
+
+			// private member sample
+			var _score;
+			var _life;
+			var _isInit = false;
+
+    		return {
+				// public method
+    			getRandomPos : function(_ratio) {
+					_random = Math.floor(Math.random()*_ratio);
+    		   		return _random;
+    		  	},
+				// public member
+        		scoreLabel: {
+        		    get: function() {
+        		        return this._score;
+        		    }
+        		},
+        		lifeLabel: {
+        		    get: function() {
+        		        return this._life;
+        		    }
+        		},
+        		isInit: {
+        		    get: function() {
+        		        return this._isInit;
+        		    },
+					set: function(_is){
+						 this._isInit = _is;
+					}
+        		},
+    		};
+		};
+
+		return {
+			getInstance: function () {
+				if( !instance ) {
+					instance = init();
+				}
+				return instance;
+			}
+		};
+	})();
 
 	var Param = (function() {
 
@@ -75,6 +129,7 @@ window.onload = function(){
 			var _pitatto_ratio = 0;
 			var _mouseX = 0;
 			var _mouseY = 0;
+			var _isEnable = true;
 
     		return {
 				// public method
@@ -215,6 +270,14 @@ window.onload = function(){
 						this._imWatchDogCount = cnt;
         		    }
         		},
+        		enable: {
+        		    get: function() {
+        		        return this._isEnable;
+        		    },
+        		    set: function(_is) {
+						this._isEnable = _is;
+        		    }
+        		},
         		v_ratio: {
         		    get: function() {
         		        return this._v_ratio;
@@ -235,6 +298,9 @@ window.onload = function(){
 			}
 		};
 	})();
+
+	var sUserData = User.getInstance();
+	sUserData.isInit = false;
 
 	function destroyBall(_ballArray, _obj, _isForceDestroy){
 		var pm = Param.getInstance();
@@ -284,20 +350,19 @@ window.onload = function(){
 
 	function bomb(_scene, _x, _y, _block){
 		var bomb = new Sprite(256, 256);
+		var s_x = _x - (256/2);
+		var s_y = _y- (256/2);
 
     	bomb.image = game.assets['image/bomb_1.png'];
     	bomb.frame = 0;
-		bomb.moveTo(_x, _y);
+		bomb.moveTo(s_x, s_y);
 		bomb.kind = "bomb";
 
 		bomb.tl.repeat(function(){
 			bomb.frame++;
 		}, 15).and().scaleTo(2.2, 30, enchant.Easing.LINEAR).
-		and().then(function(){
-			destroyBlockXY(_x, _y, _block);
-		}).
-		fadeOut(15).then(function(){
-			bomb.destroy();
+		fadeOut(15).delay(game.fps).then(function(){
+			bomb.tl.removeFromScene();
 		});
 
 		_scene.addChild(bomb);
@@ -435,39 +500,43 @@ window.onload = function(){
 		var pm = Param.getInstance();
 
 		window.document.onmousedown = function(e){
-			if(pm.isPitatto == true){
-				for(var ii=0; ii<pm.ballAr.length; ii++){
-					var grp = pm.ballAr[ii];
-					var dist = calcDistance(grp.x, grp.y, grp.x, 0);
-					console.log("dist = " + dist + " fps = " + pm.getVRatio(dist));
-					grp.tl.clear().moveTo(grp.x, 0, pm.getVRatio(dist), enchant.Easing.LINEAR);
+			if(pm.enable == true){
+				if(pm.isPitatto == true){
+					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp = pm.ballAr[ii];
+						var dist = calcDistance(grp.x, grp.y, grp.x, 0);
+						console.log("dist = " + dist + " fps = " + pm.getVRatio(dist));
+						grp.tl.clear().moveTo(grp.x, 0, pm.getVRatio(dist), enchant.Easing.LINEAR);
+					}
+					pm.isPitatto = false;
 				}
-				pm.isPitatto = false;
-			}
-			else{
-				pm.downP = true;
-				console.log("downP = " + pm.downP);
+				else{
+					pm.downP = true;
+					console.log("downP = " + pm.downP);
+				}
 			}
 		}
 
 		window.document.onmousemove = function(e){
-			pm.mouseX = e.pageX / game.scale;
-			pm.mouseY = e.pageY / game.scale;
+			if(pm.enable == true){
+				pm.mouseX = e.pageX / game.scale;
+				pm.mouseY = e.pageY / game.scale;
 
-			_player.prevX = _player.x;
-			_player.x = parseInt(pm.mouseX) - (_player.width/2);
-			if(_player.x >= game.width - _player.width - 5){
-				_player.x = game.width - _player.width - 5;
-			}
-			else if(_player.x <= 0 + 5){
-				_player.x = 5;
-			}
+				_player.prevX = _player.x;
+				_player.x = parseInt(pm.mouseX) - (_player.width/2);
+				if(_player.x >= game.width - _player.width - 5){
+					_player.x = game.width - _player.width - 5;
+				}
+				else if(_player.x <= 0 + 5){
+					_player.x = 5;
+				}
 
-			if(pm.isPitatto == true){
-				var move_ratio = (_player.x - _player.prevX);
-   				for(var ii=0; ii<pm.ballAr.length; ii++){
-					var grp = pm.ballAr[ii];
-					grp.x += move_ratio;
+				if(pm.isPitatto == true){
+					var move_ratio = (_player.x - _player.prevX);
+   					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp = pm.ballAr[ii];
+						grp.x += move_ratio;
+					}
 				}
 			}
 		};
@@ -773,6 +842,8 @@ window.onload = function(){
 
         retryButton.addEventListener(Event.TOUCH_END, function(){
 			var current_stage = _stage_number;
+			var us = User.getInstance();
+			us.lifeLabel.life++;
 			game.popScene();
 			game.replaceScene(gameStage(current_stage));
         });
@@ -782,6 +853,8 @@ window.onload = function(){
 
         nextButton.addEventListener(Event.TOUCH_END, function(){
 			var next_stage = _stage_number+1;
+			var us = User.getInstance();
+			us.lifeLabel.life++;
 			game.popScene();
 			game.replaceScene(gameStage(next_stage));
         });
@@ -837,6 +910,9 @@ window.onload = function(){
 
         retryButton.addEventListener(Event.TOUCH_END, function(){
 			var current_stage = _stage_number;
+			var us = User.getInstance();
+			us.lifeLabel.life = 5;
+			us.scoreLabel.score = Math.floor(us.scoreLabel.score/2);
 			game.popScene();
 			game.replaceScene(gameStage(current_stage));
         });
@@ -854,6 +930,7 @@ window.onload = function(){
 
 	function controlBall(_player, _block, _scene, _stage,  _input){
 		var pm = Param.getInstance();
+		var us = User.getInstance();
 		var move_distance = _player.x;
    		for(var ii=0; ii<pm.ballAr.length; ii++){
 			var grp		= pm.ballAr[ii];
@@ -862,7 +939,32 @@ window.onload = function(){
 
    			var deadLine = (_player.y + (_player.height) + 5);
    			if(posY >= deadLine){
-   				destroyBall(pm.ballAr, _ball);
+				if(us.lifeLabel.life > 0){
+   					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp	= pm.ballAr[ii];
+						var fr = pm.ballAr[ii].firstChild;
+
+						var s_x = _player.x + _player.width/2 - fr.width/2;
+						var s_y = _player.y - fr.height;
+						pm.enable = false;
+   						bomb(_scene, grp.x, grp.y);
+						grp.tl.clear().moveTo(grp.x, grp.y-3, 1, enchant.Easing.LINEAR).
+									   then(function(){
+											fr.tl.fadeOut(game.fps, enchant.Easing.LINEAR).
+											fadeIn(game.fps, enchant.Easing.LINEAR);
+										}).delay(game.fps).then(function(){
+											grp.tl.moveTo(s_x, s_y, 1, enchant.Easing.LINEAR);
+										}).
+										then(function(){
+											pm.enable = true;
+										});
+					}
+					pm.isPitatto	= true;
+					us.lifeLabel.life--;
+				}
+				else{
+   					destroyBall(pm.ballAr, _ball);
+				}
    			}
 
 			for(var jj=0; jj<_block.length; jj++){
@@ -939,6 +1041,7 @@ window.onload = function(){
 						// where does yamochi-san go?
    					}
    					else {
+						var us = User.getInstance();
 						var acos = calcRadBtoB(blkSp, grp);
 						var vx = 0;
 						var vy = 0;
@@ -1008,6 +1111,7 @@ window.onload = function(){
 							console.log("hoge(4): watchdog update");
 						}
    						destroyBlock(blkSp, _block);
+						us.scoreLabel.score++;
    					}
    					
    					if(pm.bombMode == true){
@@ -1071,7 +1175,6 @@ window.onload = function(){
    		}
 
    		if(pm.ballAr.length <= 0){
-			/* atode */
    			game.pushScene(gameoverScene(_stage));
    		}
    		else{
@@ -1326,15 +1429,23 @@ window.onload = function(){
 
 		var scene = new Scene();
 		var pad = new Pad();
-		var lifeLabel = new LifeLabel(5, 280, 3);
 		var ii = 0;
 
 		var ball_group; 
 		var player;
 		var block;
 		var pm = Param.getInstance();
+		var us = User.getInstance();
 
 		initialize_params();
+
+		if(us.isInit == false){
+			us.isInit = true;
+			us.lifeLabel = new LifeLabel(5, 280, 5);
+			us.lifeLabel.life = 5;
+			us.scoreLabel = new ScoreLabel(5, 250);
+			us.scoreLabel.score = 0;
+		}
 
 		setBackGround(scene, _stage);
 
@@ -1352,7 +1463,8 @@ console.log("stage = " + _stage);
 			//ball_group.tl.moveTo(game.width, game.height, FIRST_SPEED, enchant.Easing.LINEAR);
 		}
 
-		scene.addChild(lifeLabel);
+		scene.addChild(us.lifeLabel);
+		scene.addChild(us.scoreLabel);
 		scene.addChild(ball_group);
 		pm.ballAr.push(ball_group);
 
@@ -1366,161 +1478,163 @@ console.log("stage = " + _stage);
 			var pm = Param.getInstance();
 			var input = game.input;
 
-			controlBall(player, block, scene, _stage, input);
+			if(pm.enable == true){
+				controlBall(player, block, scene, _stage, input);
 
-			{
-				/* focus on player */
-				if (input.up)    {
-					if(pm.isPitatto == true){
+				{
+					/* focus on player */
+					if (input.up)    {
+						if(pm.isPitatto == true){
+							for(var ii=0; ii<pm.ballAr.length; ii++){
+								var grp = pm.ballAr[ii];
+								var dist = calcDistance(grp.x, grp.y, grp.x, 0);
+								grp.tl.clear().moveTo(grp.x, 0, pm.getVRatio(dist), enchant.Easing.LINEAR);
+							}
+							pm.isPitatto = false;
+						}
+					}
+
+					if(input.g){
+					}
+
+					if(input.z){
+						var pm = Param.getInstance();
 						for(var ii=0; ii<pm.ballAr.length; ii++){
 							var grp = pm.ballAr[ii];
-							var dist = calcDistance(grp.x, grp.y, grp.x, 0);
-							grp.tl.clear().moveTo(grp.x, 0, pm.getVRatio(dist), enchant.Easing.LINEAR);
-						}
-						pm.isPitatto = false;
-					}
-				}
-
-				if(input.g){
-				}
-
-				if(input.z){
-					var pm = Param.getInstance();
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var grp = pm.ballAr[ii];
-						grp.tl.clear();
-					}
-				}
-
-				if(input.r){
-					var pm = Param.getInstance();
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var grp = pm.ballAr[ii];
-						grp.tl.clear().moveTo(-1, -1, 50, enchant.Easing.LINEAR);
-					}
-				}
-
-				if(input.l){
-				}
-
-				if(input.t){
-				}
-
-				if(input.s){
-					var lastBlockLength = block.length - parseInt(pm.imBlockCount);
-					console.log("block length = " + block.length + " last = " + lastBlockLength);
-
-					for(var ii=0; ii<pm.ballAr.length; ii++){
-						var ball = pm.ballAr[ii].firstChild;
-						console.log("angle = " + ball.angle + " angularVelocity = " + ball.angularVelocity);
-						console.log("velocity = " + ball.velocity + " vx = " + ball.vx + " vy = " + ball.vy);
-					}
-				}
-
-				if(input.b){
-					pm.bombMode = true;
-				}
-
-				if (input.down)  {
-					pm.downP = true;
-				}
-	
-				if (input.left)  {
-					if(pm.isPitatto == true){
-						pm.p_ratio -= 5;
-					}
-					player.x -= 5;
-				}
-
-				if (input.right) {
-					if(pm.isPitatto == true){
-						pm.p_ratio += 5;
-					}
-					player.x += 5;
-				}
-	
-				if(player.x <= 0) {
-					if(pm.isPitatto == true){
-						pm.p_ratio = 0;
-					}
-					player.x = 0;
-				}
-	
-				if(player.x + player.width > game.width) {
-					if(pm.isPitatto == true){
-						pm.p_ratio = 0;
-					}
-					player.x = game.width - player.width;
-				}
-
-   				for(var ii=0; ii<pm.ballAr.length; ii++){
-					var grp = pm.ballAr[ii];
-   					var _ball = pm.ballAr[ii].lastChild;
-   					var _ball_fr = pm.ballAr[ii].firstChild;
-
-					if(pm.isPitatto == true){
-						grp.x += pm.p_ratio;
-						pm.p_ratio = 0;
-					}
-
-					if(player.intersect(_ball) == true){
-						grp.y = player.y - _ball.height - 1;
-						if(pm.downP == true){
 							grp.tl.clear();
-							pm.isPitatto = true;
-							pm.downP = false;
 						}
-						else{
-							var acos = calcRadPtoB(player, grp);
-							var vx = 0;
-							var vy = 0;
-							console.log("acos = " + acos);
+					}
 
-							if(acos <= Math.PI/2){
-								var qt = Math.PI/4;
-								if(acos > qt){
-									vx = (game.width/2) * (acos/Math.PI/2);
-								}
-								else if(acos < qt){
-									vy = player.y * (acos/qt);
-								}
-							}
-							else {
-								var qt = Math.PI / 4 * 3;
-								vx = game.width;
+					if(input.r){
+						var pm = Param.getInstance();
+						for(var ii=0; ii<pm.ballAr.length; ii++){
+							var grp = pm.ballAr[ii];
+							grp.tl.clear().moveTo(-1, -1, 50, enchant.Easing.LINEAR);
+						}
+					}
 
-								if(acos < qt){
-									vx = game.width * (acos/qt);
-								}
-								else if(acos > qt){
-									vy = player.y * (acos/Math.PI);
-								}
+					if(input.l){
+					}
+
+					if(input.t){
+					}
+
+					if(input.s){
+						var lastBlockLength = block.length - parseInt(pm.imBlockCount);
+						console.log("block length = " + block.length + " last = " + lastBlockLength);
+
+						for(var ii=0; ii<pm.ballAr.length; ii++){
+							var ball = pm.ballAr[ii].firstChild;
+							console.log("angle = " + ball.angle + " angularVelocity = " + ball.angularVelocity);
+							console.log("velocity = " + ball.velocity + " vx = " + ball.vx + " vy = " + ball.vy);
+						}
+					}
+
+					if(input.b){
+						pm.bombMode = true;
+					}
+
+					if (input.down)  {
+						pm.downP = true;
+					}
+	
+					if (input.left)  {
+						if(pm.isPitatto == true){
+							pm.p_ratio -= 5;
+						}
+						player.x -= 5;
+					}
+
+					if (input.right) {
+						if(pm.isPitatto == true){
+							pm.p_ratio += 5;
+						}
+						player.x += 5;
+					}
+	
+					if(player.x <= 0) {
+						if(pm.isPitatto == true){
+							pm.p_ratio = 0;
+						}
+						player.x = 0;
+					}
+	
+					if(player.x + player.width > game.width) {
+						if(pm.isPitatto == true){
+							pm.p_ratio = 0;
+						}
+						player.x = game.width - player.width;
+					}
+
+   					for(var ii=0; ii<pm.ballAr.length; ii++){
+						var grp = pm.ballAr[ii];
+   						var _ball = pm.ballAr[ii].lastChild;
+   						var _ball_fr = pm.ballAr[ii].firstChild;
+
+						if(pm.isPitatto == true){
+							grp.x += pm.p_ratio;
+							pm.p_ratio = 0;
+						}
+
+						if(player.intersect(_ball) == true){
+							grp.y = player.y - _ball.height - 1;
+							if(pm.downP == true){
+								grp.tl.clear();
+								pm.isPitatto = true;
+								pm.downP = false;
 							}
-							if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
-							   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-								var dist;
-								pm.v_ratio -= 0.5;
-								grp.prevX = grp.x;
-								grp.prevY = grp.y;
-								pm.watchdog = 0;
-								if(vx > game.width){
-									vx = game.width;
-								}
-								else if(vx < 0){
-									vx = -2;
-								}
-								if(vy > game.height){
-									vy = game.height;
-								}
-								else if(vy < 0){
-									vy = -2;
-								}
-								dist = calcDistance(grp.prevX, grp.prevY, vx, vy);
-								grp.tl.clear().moveTo(vx-2, vy, pm.getVRatio(dist), enchant.Easing.LINEAR);
-							}	
 							else{
-								pm.watchdog++;
-								console.log("hoge3 :watchdog");
+								var acos = calcRadPtoB(player, grp);
+								var vx = 0;
+								var vy = 0;
+								console.log("acos = " + acos);
+
+								if(acos <= Math.PI/2){
+									var qt = Math.PI/4;
+									if(acos > qt){
+										vx = (game.width/2) * (acos/Math.PI/2);
+									}
+									else if(acos < qt){
+										vy = player.y * (acos/qt);
+									}
+								}
+								else {
+									var qt = Math.PI / 4 * 3;
+									vx = game.width;
+
+									if(acos < qt){
+										vx = game.width * (acos/qt);
+									}
+									else if(acos > qt){
+										vy = player.y * (acos/Math.PI);
+									}
+								}
+								if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
+								   (Math.floor(grp.prevY) != Math.floor(grp.y))){
+									var dist;
+									pm.v_ratio -= 0.5;
+									grp.prevX = grp.x;
+									grp.prevY = grp.y;
+									pm.watchdog = 0;
+									if(vx > game.width){
+										vx = game.width;
+									}
+									else if(vx < 0){
+										vx = -2;
+									}
+									if(vy > game.height){
+										vy = game.height;
+									}
+									else if(vy < 0){
+										vy = -2;
+									}
+									dist = calcDistance(grp.prevX, grp.prevY, vx, vy);
+									grp.tl.clear().moveTo(vx-2, vy, pm.getVRatio(dist), enchant.Easing.LINEAR);
+								}	
+								else{
+									pm.watchdog++;
+									console.log("hoge3 :watchdog");
+								}
 							}
 						}
 					}
@@ -1574,9 +1688,9 @@ console.log("stage = " + _stage);
 		logoSprite.moveTo(50,50);
 		logoSprite.tl.scaleTo(3.0, 1, enchant.Easing.LINEAR);
 		logoSprite.tl.fadeIn(game.fps, enchant.Easing.LINEAR).and().
-					  scaleTo(0.25, game.fps, enchant.Easing.LINEAR).
+					  scaleTo(0.5, game.fps, enchant.Easing.LINEAR).
 					  rotateTo(360, game.fps, enchant.Easing.LINEAR).
-					  moveTo(170,200,game.fps, enchant.Easing.LINEAR);
+					  moveTo(140,182,game.fps, enchant.Easing.LINEAR);
 
 		startButton.moveTo(sBtnX, 160);
 		startButton._style.zIndex = 1;
