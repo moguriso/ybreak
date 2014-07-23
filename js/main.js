@@ -1005,6 +1005,10 @@ window.onload = function(){
 							grp.prevY = grp.y;
 							pm.watchdog = 0; /* reset irregular check counter */
 
+							if(Math.floor(grp.prevY) == Math.floor(grp.y)){
+								vy -= 2;
+							}
+
 							dist = calcDistance(grp.prevX, grp.prevY, vx, vy);
 							grp.tl.clear().moveTo(vx-2, vy, pm.getVRatio(dist), enchant.Easing.LINEAR);
 						}
@@ -1042,6 +1046,10 @@ window.onload = function(){
 							grp.prevX = grp.x;
 							grp.prevY = grp.y;
 							pm.watchdog = 0; /* reset irregular check counter */
+
+							if(Math.floor(grp.prevY) == Math.floor(grp.y)){
+								vy -= 2;
+							}
 
 							dist = calcDistance(grp.prevX, grp.prevY, vx, vy);
 							console.log("vx = " + vx + " vy = " + vy);
