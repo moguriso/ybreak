@@ -982,13 +982,12 @@ window.onload = function(){
    					if(blkSp.color == "#444444"){
 						if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
 						   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-							var retObj = calcRadBtoB(blkSp, grp);
-							var vx = retObj.x;
-							var vy = retObj.y;
+							var retObj;
+							var vx, vy;
 							var dist;
 
+							grp.tl.clear();
 							if(blkSp.y < grp.y){
-								pos_y = game.height;
 								if((blkSp.y+(blkSp.height/2)) < grp.y){
 									grp.y = blkSp.y + _ball.height + 1;
 								}
@@ -998,7 +997,10 @@ window.onload = function(){
 									grp.y = blkSp.y - _ball.height - 1;
 								}
 							}
-							grp.tl.clear();
+
+							retObj = calcRadBtoB(blkSp, grp);
+							vx = retObj.x;
+							vy = retObj.y;
 
 							console.log("update prev");
 							grp.prevX = grp.x;
@@ -1022,25 +1024,27 @@ window.onload = function(){
    					}
    					else {
 						var us = User.getInstance();
-
-						if(blkSp.y < grp.y){
-							pos_y = game.height;
-							if((blkSp.y+(blkSp.height/2)) < grp.y){
-								grp.y = blkSp.y + _ball.height + 1;
-							}
-						}
-						else{
-							if((blkSp.y+(blkSp.height/2)) > grp.y){
-								grp.y = blkSp.y - _ball.height - 1;
-							}
-						}
-
 						if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
 						   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-							var retObj = calcRadBtoB(blkSp, grp);
-							var vx = retObj.x;
-							var vy = retObj.y;
+							var retObj;
+							var vx, vy;
 							var dist;
+
+							grp.tl.clear();
+							if(blkSp.y < grp.y){
+								if((blkSp.y+(blkSp.height/2)) < grp.y){
+									grp.y = blkSp.y + _ball.height + 1;
+								}
+							}
+							else{
+								if((blkSp.y+(blkSp.height/2)) > grp.y){
+									grp.y = blkSp.y - _ball.height - 1;
+								}
+							}
+
+							retObj = calcRadBtoB(blkSp, grp);
+							vx = retObj.x;
+							vy = retObj.y;
 
 							console.log("update prev");
 							grp.prevX = grp.x;
@@ -1139,6 +1143,7 @@ window.onload = function(){
 
 		var retObj = new Object();
    		var _ball = _ball_group.firstChild;
+   		var _ball_back = _ball_group.lastChild;
 		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
 		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
 		var current_x = (_ball_group.x + (_ball.width/2.0));
@@ -1162,18 +1167,38 @@ window.onload = function(){
 		console.log("p_x = " + prev_x + " p_y = " + prev_y);
 		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
 		console.log(" d_x = " + (dist_x) + " d_y = " + (dist_y));
-		if(prev_x < current_x){
-			retObj.x = parseInt(current_x) + parseInt(dist_x);
+
+		/* i wanna fix that after all		*/
+		/* however anyone don't fix	perhaps	*/
+		if(((current_x + _ball_back.width + 2) < _block.x) ||
+		   (current_x - 2 > (_block.x + _block.width))){ /* adjusting val(2) is tentative	*/
+														 /* plz someone fix that someday...	*/
+			if(prev_x < current_x){
+				retObj.x = parseInt(current_x) - parseInt(dist_x);
+			}
+			else{	
+				retObj.x = parseInt(current_x) + parseInt(dist_x);
+			}
+
+			/* when ball hit block left/right side, it move to down-side */
+			retObj.y = parseInt(current_y) + (parseInt(dist_y) * 1.5);
 		}
-		else{	
-			retObj.x = parseInt(current_x) - parseInt(dist_x);
+		else{
+			if(prev_x < current_x){
+				retObj.x = parseInt(current_x) + parseInt(dist_x);
+			}
+			else{	
+				retObj.x = parseInt(current_x) - parseInt(dist_x);
+			}
+
+			if(prev_y > current_y){
+				retObj.y = parseInt(current_y) + parseInt(dist_y);
+			}
+			else {
+				retObj.y = parseInt(current_y) - parseInt(dist_y);
+			}
 		}
-		if(prev_y > current_y){
-			retObj.y = parseInt(current_y) + parseInt(dist_y);
-		}
-		else {
-			retObj.y = parseInt(current_y) - parseInt(dist_y);
-		}
+
 		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
 
 		console.log("hoge: x = " + retObj.x + " y = " + retObj.y);
