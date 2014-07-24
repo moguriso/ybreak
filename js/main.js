@@ -944,7 +944,7 @@ window.onload = function(){
    			var _ball	= pm.ballAr[ii].lastChild;
 			var posY	= pm.ballAr[ii].y + (_ball.height/2);
 
-   			var deadLine = (_player.y + (_player.height) + 5);
+   			var deadLine = (_player.y + (_player.height) + 20);
    			if(posY >= deadLine){
 				if(us.lifeLabel.life > 0){
    					for(var ii=0; ii<pm.ballAr.length; ii++){
@@ -979,47 +979,7 @@ window.onload = function(){
 			for(var jj=0; jj<_block.length; jj++){
 				var blkSp = _block[jj];
 				if(_ball.intersect(blkSp) == true){
-   					if(blkSp.color == "#444444"){
-						if((Math.floor(grp.prevX) != Math.floor(grp.x)) ||
-						   (Math.floor(grp.prevY) != Math.floor(grp.y))){
-							var retObj;
-							var vx, vy;
-							var dist;
-
-							grp.tl.clear();
-							if(blkSp.y < grp.y){
-								if((blkSp.y+(blkSp.height/2)) < grp.y){
-									grp.y = blkSp.y + _ball.height + 1;
-								}
-							}
-							else{
-								if((blkSp.y+(blkSp.height/2)) > grp.y){
-									grp.y = blkSp.y - _ball.height - 1;
-								}
-							}
-
-							retObj = calcRadBtoB(blkSp, grp);
-							vx = retObj.x;
-							vy = retObj.y;
-
-							console.log("update prev");
-							grp.prevX = grp.x;
-							grp.prevY = grp.y;
-							pm.watchdog = 0; /* reset irregular check counter */
-
-							if(Math.floor(grp.prevY) == Math.floor(grp.y)){
-								vy -= 2;
-							}
-
-							dist = calcDistance(grp.prevX, grp.prevY, vx, vy);
-							grp.tl.clear().moveTo(vx-2, vy, pm.getVRatio(dist), enchant.Easing.LINEAR);
-						}
-						else{
-							++pm.watchdog;
-							console.log("watchdog : irregular occurred"); 
-						}
-   					}
-   					else if(pm.yamochiMode == true){
+   					if(pm.yamochiMode == true){
 						// where does yamochi-san go?
    					}
    					else {
@@ -1033,12 +993,12 @@ window.onload = function(){
 							grp.tl.clear();
 							if(blkSp.y < grp.y){
 								if((blkSp.y+(blkSp.height/2)) < grp.y){
-									grp.y = blkSp.y + _ball.height + 1;
+									grp.y = blkSp.y + _ball.height + 3;
 								}
 							}
 							else{
 								if((blkSp.y+(blkSp.height/2)) > grp.y){
-									grp.y = blkSp.y - _ball.height - 1;
+									grp.y = blkSp.y - _ball.height - 3;
 								}
 							}
 
@@ -1063,8 +1023,11 @@ window.onload = function(){
 							++pm.watchdog;
 							console.log("watchdog : irregular occurred"); 
 						}
-   						destroyBlock(blkSp, _block);
-						us.scoreLabel.score++;
+
+   						if(blkSp.color != "#444444"){
+   							destroyBlock(blkSp, _block);
+							us.scoreLabel.score++;
+   						}
    					}
    					
    					if(pm.bombMode == true){
@@ -1200,9 +1163,10 @@ window.onload = function(){
 		}
 
 		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
-
 		console.log("hoge: x = " + retObj.x + " y = " + retObj.y);
+
 		retObj = adjustDistance(retObj, current_x, current_y);
+
 		console.log("retObj.x = " + retObj.x + " y = " + retObj.y);
 
 		return retObj;
