@@ -957,7 +957,7 @@ window.onload = function(){
 
 						grp.tl.clear().delay(game.fps);
    						bomb(_scene, grp.x, grp.y);
-						grp.tl.clear().moveTo(grp.x, grp.y-3, 1, enchant.Easing.LINEAR).
+						grp.tl.moveTo(grp.x, grp.y-3, 1, enchant.Easing.LINEAR).
 									   then(function(){
 											fr.tl.fadeOut(game.fps, enchant.Easing.LINEAR).
 											fadeIn(game.fps, enchant.Easing.LINEAR);
