@@ -22,7 +22,6 @@ window.onload = function(){
 	game.keybind( 83, 's' );
 	game.keybind( 65, 'a' );
 
-
 	function initialize_params(){
 		var pm = Param.getInstance();
 
@@ -1275,14 +1274,19 @@ window.onload = function(){
 		dc_x = parseInt(current_x) - parseInt(dist_x);
 		dc_y = parseInt(current_y) - parseInt(dist_y);
 
-		if(ac_x < 5.0)
+		if(ac_x < 5.0){
 			ac_x = 5.0;
-		if(ac_y < 8.0)
-			ac_y = 8.0;
-		if(dc_x < 5.0)
+		}
+		if(ac_y < 16.0){
+			ac_y = 16.0;
+		}
+
+		if(dc_x < 5.0){
 			dc_x = 5.0;
-		if(dc_y < 8.0)
-			dc_y = 8.0;
+		}
+		if(dc_y < 16.0){
+			dc_y = 16.0;
+		}
 
 		switch(_hit_target){
 			case "top_wall":		/* top boarder			  */
