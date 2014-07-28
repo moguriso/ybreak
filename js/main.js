@@ -42,6 +42,7 @@ window.onload = function(){
 		pm.isPitatto	= false;
 		pm.bombMode		= false;
 		pm.isControlEnable = true;
+		pm.borderLine = 0.0;
 	}
 
 	var User = (function() {
@@ -127,6 +128,7 @@ window.onload = function(){
 			var _mouseX = 0;
 			var _mouseY = 0;
 			var _isControlEnable = true;
+			var _borderLine = 0.0;
 
     		return {
 				// public method
@@ -151,12 +153,20 @@ window.onload = function(){
 						this._imBlockCount = cnt;
         		    }
         		},
+        		borderLine : {
+        		    get: function() {
+        		        return this._borderLine;
+        		    },
+        		    set: function(cnt) {
+						this._borderLine = cnt;
+        		    }
+        		},
         		mouseX : {
         		    get: function() {
         		        return this._mouseX;
         		    },
         		    set: function(cnt) {
-						this._mouseX= is;
+						this._mouseX= cnt;
         		    }
         		},
         		mouseY : {
@@ -164,7 +174,7 @@ window.onload = function(){
         		        return this._mouseY;
         		    },
         		    set: function(cnt) {
-						this._mouseY= is;
+						this._mouseY= cnt;
         		    }
         		},
         		upP : {
@@ -773,6 +783,7 @@ window.onload = function(){
 				sprite.y = pos_y;
 				var last_pos = sprite.length - 1; 
 				pm.blkGr.addChild(sprite[last_pos]);
+				pm.borderLine = sprite.y + surface.height;
 			}
 		}
 		_scene.addChild(pm.blkGr);
@@ -1127,11 +1138,20 @@ window.onload = function(){
 		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
 		console.log(" d_x = " + (dist_x) + " d_y = " + (dist_y));
 
+		var isRangeInside = false;
+		if((current_y >= _block.y) ||
+		    (_block.y >= current_y) ||
+		   ((current_y+_ball_back.height) >= _block.y) ||
+		     (_block.y >= current_y+_ball_back.height))
+		{
+			isRangeInside = true;
+		}
+
 		/* i wanna fix that after all		*/
 		/* however anyone don't fix	perhaps	*/
-		if(((current_x + _ball_back.width + 2) < _block.x) ||
-		   (current_x - 2 > (_block.x + _block.width))){ /* adjusting val(2) is tentative	*/
-														 /* plz someone fix that someday...	*/
+		if((isRangeInside == true) &&
+		   ((current_x < _block.x) ||
+		    (current_x > (_block.x + _block.width)))){
 			if(prev_x < current_x){
 				retObj.x = parseInt(current_x) - parseInt(dist_x);
 			}
@@ -1251,12 +1271,23 @@ window.onload = function(){
 		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
 		var current_x = (_ball_group.x + (_ball.width/2.0));
 		var current_y = (_ball_group.y + (_ball.height/2.0));
+		var pm = Param.getInstance();
 
 		var dist_x;
 		var dist_y;
 		var ac_x;
 		var ac_y;
 		var dc_y;
+
+		var minimam_x_bound = 5.0;
+		var minimam_y_bound = 16.0;
+
+		/* tentative adding adjust bounding ratio		*/
+		/* that value is twice now.						*/
+		/* probably modify this param later				*/
+		if(pm.borderLine < current_y){
+			minimam_y_bound = 24.0;
+		}
 
 		/* if invalid value of previous position	*/
 		/* dummy position (center x / bottom y) set	*/
@@ -1274,18 +1305,18 @@ window.onload = function(){
 		dc_x = parseInt(current_x) - parseInt(dist_x);
 		dc_y = parseInt(current_y) - parseInt(dist_y);
 
-		if(ac_x < 5.0){
-			ac_x = 5.0;
+		if(ac_x < minimam_x_bound){
+			ac_x = minimam_x_bound;
 		}
-		if(ac_y < 16.0){
-			ac_y = 16.0;
+		if(ac_y < minimam_y_bound){
+			ac_y = minimam_y_bound;
 		}
 
-		if(dc_x < 5.0){
-			dc_x = 5.0;
+		if(dc_x < minimam_x_bound){
+			dc_x = minimam_x_bound;
 		}
-		if(dc_y < 16.0){
-			dc_y = 16.0;
+		if(dc_y < minimam_y_bound){
+			dc_y = minimam_y_bound;
 		}
 
 		switch(_hit_target){
