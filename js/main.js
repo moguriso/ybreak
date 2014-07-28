@@ -1,9 +1,6 @@
 
 enchant();
 
-/* to fix iPhone/iPad "Touch to Start" freeze issue */
-enchant.ENV.SOUND_ENABLED_ON_MOBILE_SAFARI = false;
-
 window.onload = function(){
 
     var game = new Core(320, 320);
