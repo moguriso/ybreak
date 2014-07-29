@@ -4,8 +4,16 @@ enchant();
 window.onload = function(){
 
     var game = new Core(320, 320);
-	var WATCH_DOG_COUNT = 50;
-	var MINIMAM_RATIO = 7.0;
+	var WATCH_DOG_COUNT		= 50;
+	var MINIMAM_RATIO		= 10.0;
+	var MINIMAM_X_BOUND		= 5.0;
+	var MINIMAM_Y_BOUND		= 32.0;
+	var MINIMAM_Y_DIST		= 25.0;
+
+	/* tentative adding adjust bounding ratio		*/
+	/* you'd better to modify this param later		*/
+	/* or rather, i wonder if someone modify that..?*/
+	var BOUND_ADJUST_RATIO = 2.0;
 
     game.fps = 60;
 	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
@@ -776,6 +784,8 @@ window.onload = function(){
 				tmp_sprite.color = surface.context.fillStyle;
 				tmp_sprite.moveTo(pos_x, pos_y);
 				tmp_sprite.kind = "block";
+				tmp_sprite.width = surface.width;
+				tmp_sprite.height = surface.height;
 
 				sprite.push(tmp_sprite);
 				sprite.x = pos_x;
@@ -1113,76 +1123,82 @@ window.onload = function(){
 		var retObj = new Object();
    		var _ball = _ball_group.firstChild;
    		var _ball_back = _ball_group.lastChild;
-		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
-		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
-		var current_x = (_ball_group.x + (_ball.width/2.0));
-		var current_y = (_ball_group.y + (_ball.height/2.0));
+
+		var prev_pos = new Object();
+		var cur_pos = new Object();
+		var retObj = new Object();
+		var bl = new Object();
+		var min_bound = new Object();
 
 		var blk_x = (_block.x + (_block.width/2.0));
 		var blk_y = (_block.y + (_block.height/2.0));
-		var dist_x;
-		var dist_y;
-
-		if(isNaN(prev_x) || isNaN(prev_y)){
-			prev_x = game.width/2;
-			prev_y = game.height;
-		}
-
-		dist_x = Math.abs(current_x - prev_x);
-		dist_y = Math.abs(current_y - prev_y);
-		retObj.x = 0;
-		retObj.y = 0;
-
-		console.log("p_x = " + prev_x + " p_y = " + prev_y);
-		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
-		console.log(" d_x = " + (dist_x) + " d_y = " + (dist_y));
 
 		var isRangeInside = false;
-		if((current_y >= _block.y) ||
-		    (_block.y >= current_y) ||
-		   ((current_y+_ball_back.height) >= _block.y) ||
-		     (_block.y >= current_y+_ball_back.height))
+
+		prev_pos.x =  (_ball_group.prevX + (_ball.width/2.0));
+		prev_pos.y =  (_ball_group.prevY + (_ball.height/2.0));
+		cur_pos.x = (_ball_group.x + (_ball.width/2.0));
+		cur_pos.y = (_ball_group.y + (_ball.height/2.0));
+
+		retObj.x = 0;
+		retObj.y = 0;
+		bl.ax = 0.0;
+		bl.ay = 0.0;
+		bl.dx = 0.0;
+		bl.dy = 0.0;
+
+		min_bound.x = MINIMAM_X_BOUND;
+		min_bound.y = MINIMAM_Y_BOUND;
+
+		if(isNaN(prev_pos.x) || isNaN(prev_pos.y)){
+			prev_pos.x = game.width/2;
+			prev_pos.y = game.height;
+		}
+
+		bl = calcAcDcPos(cur_pos, prev_pos, min_bound);
+
+		if(
+		    ((cur_pos.y > _block.y)					 	&&
+			 ((_block.y+_block.height) > cur_pos.y)) 	||
+		    (((cur_pos.y+_ball_back.height) > _block.y) &&
+			 ((_block.y+_block.height)>(cur_pos.y+_ball_back.height)))
+		  )
 		{
 			isRangeInside = true;
 		}
 
-		/* i wanna fix that after all		*/
-		/* however anyone don't fix	perhaps	*/
 		if((isRangeInside == true) &&
-		   ((current_x < _block.x) ||
-		    (current_x > (_block.x + _block.width)))){
-			if(prev_x < current_x){
-				retObj.x = parseInt(current_x) - parseInt(dist_x);
+		   ((cur_pos.x+_ball_back.width < _block.x) ||
+		    (cur_pos.x > (_block.x + _block.width)))){
+
+			if(prev_pos.x < cur_pos.x){
+				retObj.x = bl.dx;
 			}
 			else{	
-				retObj.x = parseInt(current_x) + parseInt(dist_x);
+				retObj.x = bl.ax;
 			}
 
-			/* when ball hit block left/right side, it move to down-side */
-			retObj.y = parseInt(current_y) + (parseInt(dist_y) * 1.5);
+			/*	when ball hit block's left/right side,	*/
+			/*	it move to down-side					*/
+			retObj.y = bl.ay * 1.25;
 		}
 		else{
-			if(prev_x < current_x){
-				retObj.x = parseInt(current_x) + parseInt(dist_x);
+			if(prev_pos.x < cur_pos.x){
+				retObj.x = bl.ax;
 			}
 			else{	
-				retObj.x = parseInt(current_x) - parseInt(dist_x);
+				retObj.x = bl.dx;
 			}
 
-			if(prev_y > current_y){
-				retObj.y = parseInt(current_y) + parseInt(dist_y);
+			if(prev_pos.y > cur_pos.y){
+				retObj.y = bl.ay;
 			}
-			else {
-				retObj.y = parseInt(current_y) - parseInt(dist_y);
+			else{	
+				retObj.y = bl.dy;
 			}
 		}
 
-		console.log("c_x = " + current_x + " c_y = " + current_y + " d_x = " + dist_x + " d_y = " + dist_y);
-		console.log("hoge: x = " + retObj.x + " y = " + retObj.y);
-
-		retObj = adjustDistance(retObj, current_x, current_y);
-
-		console.log("retObj.x = " + retObj.x + " y = " + retObj.y);
+		retObj = adjustDistance(retObj, cur_pos.x, cur_pos.y);
 
 		return retObj;
 	}
@@ -1262,93 +1278,107 @@ window.onload = function(){
 		return retObj;
 	}
 
+	function calcAcDcPos(_cur, _prev, _min){
+		var retObj = new Object();
+		var dist_x, dist_y;
+
+		dist_x = Math.abs(_cur.x - _prev.x);
+		dist_y = Math.abs(_cur.y - _prev.y);
+
+		if(dist_y < MINIMAM_Y_DIST){
+			dist_y = MINIMAM_Y_DIST;
+		}
+
+		retObj.ax = parseInt(_cur.x) + parseInt(dist_x);
+		retObj.ay = parseInt(_cur.y) + parseInt(dist_y);
+		retObj.dx = parseInt(_cur.x) - parseInt(dist_x);
+		retObj.dy = parseInt(_cur.y) - parseInt(dist_y);
+
+		if(retObj.ax < _min.x){
+			retObj.ax = _min.x;
+		}
+		if(retObj.ay < _min.y){
+			retObj.ay = _min.y;
+		}
+		if(retObj.dx < _min.x){
+			retObj.dx = _min.x;
+		}
+		if(retObj.dy < _min.y){
+			retObj.dy = _min.y;
+		}
+
+		return retObj;
+	}
+
 	function calcRadWtoB(_wall, _ball_group, _hit_target){
 
-		var retObj = new Object();
    		var _ball = _ball_group.firstChild;
-		var prev_x = (_ball_group.prevX + (_ball.width/2.0));
-		var prev_y = (_ball_group.prevY + (_ball.height/2.0));
-		var current_x = (_ball_group.x + (_ball.width/2.0));
-		var current_y = (_ball_group.y + (_ball.height/2.0));
 		var pm = Param.getInstance();
 
-		var dist_x;
-		var dist_y;
-		var ac_x;
-		var ac_y;
-		var dc_y;
+		var prev_pos = new Object();
+		var cur_pos = new Object();
+		var retObj = new Object();
+		var bl = new Object();
+		var min_bound = new Object();
 
-		var minimam_x_bound = 5.0;
-		var minimam_y_bound = 24.0;
+		prev_pos.x =  (_ball_group.prevX + (_ball.width/2.0));
+		prev_pos.y =  (_ball_group.prevY + (_ball.height/2.0));
+		cur_pos.x = (_ball_group.x + (_ball.width/2.0));
+		cur_pos.y = (_ball_group.y + (_ball.height/2.0));
 
-		/* tentative adding adjust bounding ratio		*/
-		/* that value is twice now.						*/
-		/* probably modify this param later				*/
-		if(pm.borderLine < current_y){
-			minimam_y_bound /= 3.0;
-			minimam_y_bound *= 4.0;
+		retObj.x = 0.0;
+		retObj.y = 0.0;
+		bl.ax = 0.0;
+		bl.ay = 0.0;
+		bl.dx = 0.0;
+		bl.dy = 0.0;
+
+		min_bound.x = MINIMAM_X_BOUND;
+		min_bound.y = MINIMAM_Y_BOUND;
+
+		if(pm.borderLine < cur_pos.y){
+			min_bound.y *= BOUND_ADJUST_RATIO;
 		}
 
-		/* if invalid value of previous position	*/
-		/* dummy position (center x / bottom y) set	*/
-		if(isNaN(prev_x) || isNaN(prev_y)){
-			prev_x = game.width/2;
-			prev_y = game.height;
+		/* if invalid value of previous position		*/
+		/* => set dummy position (center x / bottom y)	*/
+		if(isNaN(prev_pos.x) || isNaN(prev_pos.y)){
+			prev_pos.x = game.width/2;
+			prev_pos.y = game.height;
 		}
 
-		dist_x = Math.abs(current_x - prev_x);
-		dist_y = Math.abs(current_y - prev_y);
-		retObj.x = 0;
-		retObj.y = 0;
-		ac_x = parseInt(current_x) + parseInt(dist_x);
-		ac_y = parseInt(current_y) + parseInt(dist_y);
-		dc_x = parseInt(current_x) - parseInt(dist_x);
-		dc_y = parseInt(current_y) - parseInt(dist_y);
-
-		if(ac_x < minimam_x_bound){
-			ac_x = minimam_x_bound;
-		}
-		if(ac_y < minimam_y_bound){
-			ac_y = minimam_y_bound;
-		}
-
-		if(dc_x < minimam_x_bound){
-			dc_x = minimam_x_bound;
-		}
-		if(dc_y < minimam_y_bound){
-			dc_y = minimam_y_bound;
-		}
+		bl = calcAcDcPos(cur_pos, prev_pos, min_bound);
 
 		switch(_hit_target){
 			case "top_wall":		/* top boarder			  */
-				if(prev_x < current_x)
-					retObj.x = ac_x;
+				if(prev_pos.x < cur_pos.x)
+					retObj.x = bl.ax;
 				else	
-					retObj.x = dc_x;
+					retObj.x = bl.dx;
 
-				retObj.y = ac_y;
+				retObj.y = bl.ay;
 				break;
 			case "left_wall":		/* left boarder			  */
-				if(prev_y > current_y)
-					retObj.y = dc_y;
+				if(prev_pos.y > cur_pos.y)
+					retObj.y = bl.dy;
 				else
-					retObj.y = ac_y;
+					retObj.y = bl.ay;
 
-				retObj.x = ac_x;
+				retObj.x = bl.ax;
 				break;
 			case "right_wall":		/* right boarder		  */
-				if(prev_y > current_y)
-					retObj.y = dc_y;
+				if(prev_pos.y > cur_pos.y)
+					retObj.y = bl.dy;
 				else
-					retObj.y = ac_y;
+					retObj.y = bl.ay;
 
-				retObj.x = dc_x;
+				retObj.x = bl.dx;
 				break;
 			default:
 				/* nothing to do ... probably. */
 				break;
 		}
-		retObj = adjustDistance(retObj, current_x, current_y);
+		retObj = adjustDistance(retObj, cur_pos.x, cur_pos.y);
 
 		return retObj;
 	}
