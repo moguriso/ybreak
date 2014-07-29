@@ -5,10 +5,9 @@ window.onload = function(){
 
     var game = new Core(320, 320);
 	var WATCH_DOG_COUNT = 50;
-	var FIRST_SPEED = 60; /* 1 second */
-	var MINIMAM_RATIO = 3.0;
+	var MINIMAM_RATIO = 7.0;
 
-    game.fps = 30;
+    game.fps = 60;
 	game.preload('image/planet_01.jpg', 'image/SUN000E.jpg', 'image/galaxy000.jpg');
 	game.preload('image/yamochi.png', 'image/yamochi_back.png', 'image/gameover.png', 'image/clear.png',
 				 'image/bomb_1.png', 'image/3ca.png', 'image/3ca_range.png', 'image/title_true.png',
@@ -35,7 +34,7 @@ window.onload = function(){
 		pm.assertCnt	= 0;
 		pm.watchdog		= 0;
 		pm.imWatchdog	= 0;
-		pm.v_ratio		= 7.0;
+		pm.v_ratio		= 16.0;
 		pm.p_ratio		= 0;
 		pm.upP			= false;
 		pm.downP		= false;
@@ -1280,13 +1279,14 @@ window.onload = function(){
 		var dc_y;
 
 		var minimam_x_bound = 5.0;
-		var minimam_y_bound = 16.0;
+		var minimam_y_bound = 24.0;
 
 		/* tentative adding adjust bounding ratio		*/
 		/* that value is twice now.						*/
 		/* probably modify this param later				*/
 		if(pm.borderLine < current_y){
-			minimam_y_bound = 24.0;
+			minimam_y_bound /= 3.0;
+			minimam_y_bound *= 4.0;
 		}
 
 		/* if invalid value of previous position	*/
@@ -1413,7 +1413,6 @@ console.log("stage = " + _stage);
 		else{
 			ball_group		= buildSquare(player, "red", 22, 12); 
 			pm.isPitatto	= true;
-			//ball_group.tl.moveTo(game.width, game.height, FIRST_SPEED, enchant.Easing.LINEAR);
 		}
 
 		scene.addChild(us.lifeLabel);
